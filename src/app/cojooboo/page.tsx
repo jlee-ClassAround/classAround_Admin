@@ -1,57 +1,46 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { cojoobooDb } from '@/lib/cojoobooDb';
-
-import { getPaymentStats } from '@/actions/payments/get-payment-stats';
+import { getDashboardStats, getLatestOrders } from '@/actions/dashboard/get-stats';
 import { DashboardStats } from '@/components/dashboard-stats';
 import { DashboardChart } from '@/components/dashboard-chart';
 import { DashboardLatestOrders } from '@/components/dashboard-latest-orders';
 
-export default async function AdminDashboard() {
-    // 전체 통계 데이터 조회
-    const totalUsers = await cojoobooDb.user.count({
-        where: {
-            OR: [
-                { roleId: null },
-                {
-                    NOT: {
-                        roleId: 'admin',
-                    },
-                },
-            ],
-        },
-    });
-    const todayUsers = await getUserCountSignedToday();
-    const orders = await cojoobooDb.tossCustomer.findMany({
-        include: {
-            user: {
-                select: {
-                    username: true,
-                },
-            },
-        },
-        orderBy: {
-            createdAt: 'desc',
-        },
-    });
-    const latestOrders = orders.slice(0, 5);
+export default async function CojoobooAdminDashboard() {
+    const brand = 'cojooboo';
 
-    // 총 매출액 계산
-    const { totalRevenue } = await getPaymentStats('cojooboo');
+    const [statsResult, ordersResult] = await Promise.all([
+        getDashboardStats(brand),
+        getLatestOrders(brand, 5),
+    ]);
+
+    // 기본값 설정
+    const stats = statsResult.data ?? {
+        totalUsers: 0,
+        todayUsers: 0,
+        totalRevenue: 0,
+        totalOrders: 0,
+    };
+
+    const orders = ordersResult.data ?? [];
 
     return (
-        <div className="space-y-8">
-            <h1 className="text-3xl font-bold">대시보드</h1>
+        <div className="space-y-8 p-8">
+            <h1 className="text-3xl font-bold">코주부 대시보드</h1>
 
-            {/* 통계 카드 */}
+            {/* 에러 메시지 표시 */}
+            {!statsResult.success && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                    {statsResult.error}
+                </div>
+            )}
+
             <DashboardStats
-                totalUsers={totalUsers}
-                todayUsers={todayUsers}
-                totalRevenue={totalRevenue}
+                totalUsers={stats.totalUsers}
+                todayUsers={stats.todayUsers}
+                totalRevenue={stats.totalRevenue}
             />
 
             <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-                {/* 차트 */}
-                <Card className="col-span-1">
+                <Card>
                     <CardHeader>
                         <CardTitle>매출 현황</CardTitle>
                     </CardHeader>
@@ -60,35 +49,15 @@ export default async function AdminDashboard() {
                     </CardContent>
                 </Card>
 
-                {/* 최근 주문 */}
-                <Card className="col-span-1">
+                <Card>
                     <CardHeader>
                         <CardTitle>최근 주문</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <DashboardLatestOrders orders={latestOrders} />
+                        <DashboardLatestOrders orders={orders} />
                     </CardContent>
                 </Card>
             </div>
         </div>
     );
-}
-
-async function getUserCountSignedToday() {
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0); // 오늘 00:00:00
-
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999); // 오늘 23:59:59
-
-    const todayUsers = await cojoobooDb.user.count({
-        where: {
-            createdAt: {
-                gte: todayStart,
-                lte: todayEnd,
-            },
-        },
-    });
-
-    return todayUsers;
 }

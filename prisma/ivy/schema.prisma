@@ -1,6 +1,6 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../../generated/ivy"
+  output   = "../../src/generated/ivy"
 }
 
 datasource db {
