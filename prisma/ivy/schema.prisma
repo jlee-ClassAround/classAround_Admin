@@ -1,0 +1,1419 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../generated/ivy"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("IVY_DATABASE_URL")
+  directUrl = env("IVY_DIRECT_URL")
+}
+
+model User {
+  id                    String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                String               @unique @db.VarChar(50)
+  email                 String               @unique @db.VarChar(255)
+  password              String
+  isActive              Boolean?             @default(true)
+  roleGroupId           String?              @db.Uuid
+  role                  UserRole
+  platformId            String?              @db.Uuid
+  erpExternalPlatformId String?              @db.Uuid
+  orgTeacherId          String?
+  phone                 String?
+  nickname              String?
+  resetToken            String?              @unique
+  resetTokenExpiry      DateTime?            @db.Timestamptz(6)
+  lastLogin             DateTime?            @db.Timestamptz(6)
+  createdAt             DateTime?            @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime?            @updatedAt @db.Timestamptz(6)
+  ErpExternalPlatform   ErpExternalPlatform? @relation(fields: [erpExternalPlatformId], references: [id])
+  Teacher               Teacher?             @relation(fields: [orgTeacherId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  Platform              Platform?            @relation(fields: [platformId], references: [id])
+  ErpRoleGroup          ErpRoleGroup?        @relation(fields: [roleGroupId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([erpExternalPlatformId], map: "idx_user_external_platform")
+  @@index([platformId], map: "idx_user_platform")
+  @@index([orgTeacherId], map: "idx_user_teacher")
+}
+
+model Course {
+  id                  String                @id @default(uuid())
+  title               String                @default("")
+  description         String?
+  originalPrice       Int?
+  discountedPrice     Int?
+  showInInstallment   Boolean               @default(false)
+  isTaxFree           Boolean               @default(false)
+  thumbnail           String?
+  isPublished         Boolean               @default(false)
+  isHidden            Boolean               @default(false)
+  isFocusMode         Boolean               @default(false)
+  isUpcoming          Boolean               @default(false)
+  endDate             DateTime?
+  maxPurchaseCount    Int?
+  accessDuration      Int?
+  kakaoRoomLink       String?
+  kakaoRoomPassword   String?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  categoryId          String?
+  recommendUser       String?
+  startDate           DateTime?             @db.Timestamp(6)
+  platformId          String                @db.Uuid
+  cohortNumber        Int?
+  freeCourseId        String?               @unique
+  totalAdCosts        BigInt?
+  otherCosts          BigInt?
+  targetRevenue       BigInt?
+  kakaoRoomJoins      BigInt?
+  peakLiveUsers       BigInt?
+  productType         CourseProductType     @default(SIMPLE)
+  AutoIssueCoupon     AutoIssueCoupon[]
+  chapters            Chapter[]
+  category            Category?             @relation(fields: [categoryId], references: [id])
+  FreeCourse          FreeCourse?           @relation(fields: [freeCourseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  Platform            Platform              @relation(fields: [platformId], references: [id], onDelete: NoAction)
+  options             CourseOption[]
+  detailImages        DetailImage[]
+  enrollments         Enrollment[]
+  ErpSettlementDetail ErpSettlementDetail[]
+  ErpSettlementMemo   ErpSettlementMemo[]
+  Order               Order[]
+  reviews             Review[]
+  tossCustomers       TossCustomer[]
+  coupons             Coupon[]              @relation("CouponToCourse")
+  productBadge        ProductBadge[]        @relation("CourseToProductBadge")
+  teachers            Teacher[]             @relation("CourseToTeacher")
+}
+
+model FreeCourse {
+  id                String         @id @default(uuid())
+  title             String         @default("")
+  description       String?
+  thumbnail         String?
+  isPublished       Boolean        @default(false)
+  isHidden          Boolean        @default(false)
+  kakaoRoomLink     String?
+  kakaoRoomPassword String?
+  kakaoTemplateId   String?
+  location          String?
+  webhookUrl        String?
+  isUpcoming        Boolean        @default(false)
+  endDate           DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  categoryId        String?
+  recommendUser     String?
+  platformId        String         @db.Uuid
+  targetRevenue     BigInt?
+  kakaoRoomCount    Int?
+  maxBroadcastUser  Int?
+  cohortNumber      Int?
+  applyCourses      ApplyCourse[]
+  Course            Course?
+  detailImages      DetailImage[]
+  category          Category?      @relation(fields: [categoryId], references: [id])
+  Platform          Platform       @relation(fields: [platformId], references: [id], onDelete: NoAction)
+  ReferralLink      ReferralLink[]
+  ReferralLog       ReferralLog[]
+  productBadge      ProductBadge[] @relation("FreeCourseToProductBadge")
+  teachers          Teacher[]      @relation("FreeCourseToTeacher")
+}
+
+model CourseOption {
+  id               String       @id @default(cuid())
+  courseId         String
+  name             String
+  originalPrice    Int
+  discountedPrice  Int?
+  isTaxFree        Boolean      @default(false)
+  maxPurchaseCount Int?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  course           Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  enrollments      Enrollment[]
+}
+
+model DetailImage {
+  id           String      @id @default(uuid())
+  name         String
+  imageUrl     String
+  position     Int
+  courseId     String?
+  ebookId      String?
+  freeCourseId String?
+  uploadedAt   DateTime    @default(now())
+  course       Course?     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  ebook        Ebook?      @relation(fields: [ebookId], references: [id], onDelete: Cascade)
+  freeCourse   FreeCourse? @relation(fields: [freeCourseId], references: [id], onDelete: Cascade)
+}
+
+model Category {
+  id          String       @id @default(uuid())
+  name        String
+  description String?
+  type        CategoryType
+  platformId  String?      @db.Uuid
+  Platform    Platform?    @relation(fields: [platformId], references: [id], onDelete: NoAction)
+  courses     Course[]
+  ebooks      Ebook[]
+  faqs        Faq[]
+  freeCourses FreeCourse[]
+  notices     Notice[]
+  teachers    Teacher[]
+
+  @@unique([name, type, platformId], map: "category_name_type_platform_unique")
+}
+
+model Chapter {
+  id          String   @id @default(uuid())
+  title       String   @default("새로운 챕터")
+  description String?
+  position    Int
+  isPublished Boolean  @default(false)
+  courseId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons     Lesson[]
+}
+
+model Lesson {
+  id             String         @id @default(uuid())
+  title          String         @default("새로운 강의")
+  description    String?
+  position       Int
+  videoType      String         @default("vimeo")
+  videoUrl       String?
+  isPublished    Boolean        @default(false)
+  isFree         Boolean        @default(false)
+  chapterId      String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  attachments    Attachment[]
+  chapter        Chapter        @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  userProgresses UserProgress[]
+}
+
+model UserProgress {
+  id            String      @id @default(uuid())
+  isCompleted   Boolean     @default(false)
+  userProfileId String      @db.Uuid
+  lessonId      String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  lesson        Lesson      @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  UserProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([userProfileId, lessonId])
+}
+
+model Attachment {
+  id        String   @id @default(cuid())
+  name      String   @default("new file")
+  url       String
+  lessonId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+}
+
+model ProductBadge {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  color       String?
+  textColor   String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  platformId  String?      @db.Uuid
+  Platform    Platform?    @relation(fields: [platformId], references: [id], onDelete: NoAction)
+  courses     Course[]     @relation("CourseToProductBadge")
+  ebooks      Ebook[]      @relation("EbookToProductBadge")
+  freeCourses FreeCourse[] @relation("FreeCourseToProductBadge")
+}
+
+model Enrollment {
+  id             String        @id @default(uuid())
+  startDate      DateTime      @default(now())
+  endDate        DateTime?
+  isActive       Boolean       @default(true)
+  enrollCount    Int           @default(1)
+  userProfileId  String        @db.Uuid
+  courseId       String
+  courseOptionId String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  createdBy      String?       @db.Uuid
+  course         Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseOption   CourseOption? @relation(fields: [courseOptionId], references: [id])
+  AdminUser      AdminUser?    @relation(fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  UserProfile    UserProfile   @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([userProfileId, courseId])
+}
+
+model ApplyCourse {
+  id            String      @id @default(uuid())
+  userProfileId String      @db.Uuid
+  freeCourseId  String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  freeCourse    FreeCourse  @relation(fields: [freeCourseId], references: [id], onDelete: Cascade)
+  UserProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([userProfileId, freeCourseId])
+}
+
+model TossCustomer {
+  id               String          @id @default(uuid())
+  orderId          String          @unique
+  paymentKey       String          @unique
+  orderName        String
+  originalPrice    Int
+  discountPrice    Int?
+  couponType       String?
+  couponAmount     Int?
+  finalPrice       Int
+  isTaxFree        Boolean         @default(false)
+  productType      String
+  productId        String
+  productTitle     String
+  productOptionId  String?
+  productOption    Json?
+  paymentStatus    String          @default("COMPLETED")
+  cancelAmount     Int?
+  cancelReason     String?
+  refundableAmount Int?
+  canceledAt       DateTime?
+  receiptUrl       String?
+  userProfileId    String?         @db.Uuid
+  courseId         String?
+  ebookId          String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  platformId       String?         @db.Uuid
+  paymentMethod    String?
+  course           Course?         @relation(fields: [courseId], references: [id])
+  ebook            Ebook?          @relation(fields: [ebookId], references: [id])
+  Platform         Platform?       @relation(fields: [platformId], references: [id], onDelete: NoAction)
+  UserProfile      UserProfile?    @relation(fields: [userProfileId], references: [id])
+  VirtualAccount   VirtualAccount?
+
+  @@index([courseId])
+  @@index([ebookId])
+  @@index([paymentStatus])
+  @@index([createdAt])
+  @@index([productId])
+  @@index([userProfileId])
+}
+
+model Teacher {
+  id                         String                       @id @default(uuid())
+  name                       String
+  info                       String?
+  profile                    String?
+  isPublished                Boolean                      @default(false)
+  categoryId                 String?
+  createdAt                  DateTime                     @default(now())
+  updatedAt                  DateTime                     @updatedAt
+  platformId                 String?                      @db.Uuid
+  position                   Int?
+  ErpCommissionDefaultPolicy ErpCommissionDefaultPolicy[]
+  ErpUser                    ErpUser[]
+  category                   Category?                    @relation(fields: [categoryId], references: [id])
+  Platform                   Platform?                    @relation(fields: [platformId], references: [id], onDelete: NoAction)
+  User                       User[]
+  courses                    Course[]                     @relation("CourseToTeacher")
+  freeCourses                FreeCourse[]                 @relation("FreeCourseToTeacher")
+}
+
+model Coupon {
+  id              String            @id @default(uuid())
+  code            String
+  name            String
+  description     String?
+  discountType    String
+  discountAmount  Int
+  expiryDate      DateTime
+  usageLimit      Int?
+  usedCount       Int               @default(0)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  platformId      String?           @db.Uuid
+  AutoIssueCoupon AutoIssueCoupon[]
+  Platform        Platform?         @relation(fields: [platformId], references: [id], onDelete: NoAction)
+  userCoupons     UserCoupon[]
+  courses         Course[]          @relation("CouponToCourse")
+
+  @@unique([platformId, code])
+}
+
+model UserCoupon {
+  id            String      @id @default(uuid())
+  userProfileId String      @db.Uuid
+  couponId      String
+  isUsed        Boolean     @default(false)
+  usedAt        DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  coupon        Coupon      @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  UserProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([userProfileId, couponId])
+}
+
+model Notice {
+  id          Int       @id @default(autoincrement())
+  title       String
+  content     String
+  view        Int       @default(0)
+  isPublished Boolean   @default(false)
+  categoryId  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  platformId  String?   @db.Uuid
+  category    Category? @relation(fields: [categoryId], references: [id])
+  Platform    Platform? @relation(fields: [platformId], references: [id], onDelete: NoAction)
+}
+
+model Faq {
+  id          Int       @id @default(autoincrement())
+  title       String
+  content     String
+  isPublished Boolean   @default(false)
+  categoryId  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  platformId  String?   @db.Uuid
+  category    Category? @relation(fields: [categoryId], references: [id])
+  Platform    Platform? @relation(fields: [platformId], references: [id], onDelete: NoAction)
+}
+
+model Review {
+  id            Int          @id @default(autoincrement())
+  title         String
+  content       String
+  rating        Float        @default(5)
+  userProfileId String?      @db.Uuid
+  author        String?
+  courseId      String?
+  view          Int          @default(0)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  course        Course?      @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  UserProfile   UserProfile? @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+}
+
+model Contact {
+  id            Int         @id @default(autoincrement())
+  title         String
+  content       String
+  userProfileId String      @db.Uuid
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  platformId    String?     @db.Uuid
+  Platform      Platform?   @relation(fields: [platformId], references: [id], onDelete: NoAction)
+  UserProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+}
+
+model SiteSetting {
+  businessName       String?
+  businessInfo       String?
+  contactLink        String?
+  youtubeLink        String?
+  instagramLink      String?
+  naverCafeLink      String?
+  communityLink      String?
+  teacherApplyLink   String?
+  courseRefundPolicy String?
+  ebookRefundPolicy  String?
+  marketingPolicy    String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  platformId         String?   @db.Uuid
+  id                 String    @id @unique(map: "SiteSetting_id2_key") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  Platform           Platform? @relation(fields: [platformId], references: [id], onDelete: NoAction)
+}
+
+model Terms {
+  title      String
+  content    String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  platformId String    @db.Uuid
+  id         String    @id @unique(map: "Terms_id2_key") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  type       TermsType
+  Platform   Platform  @relation(fields: [platformId], references: [id], onDelete: NoAction)
+}
+
+model Post {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title        String?
+  content      String?
+  thumbnail    String?
+  externalLink String?
+  createdAt    DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime? @default(now()) @updatedAt @db.Timestamptz(6)
+  isPublished  Boolean?  @default(true)
+  platformId   String?   @db.Uuid
+  position     Int
+  Platform     Platform? @relation(fields: [platformId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model Ebook {
+  id                String          @id @default(uuid())
+  title             String
+  description       String?
+  thumbnail         String?
+  fileUrl           String?
+  originalPrice     Int?
+  discountedPrice   Int?
+  showInInstallment Boolean         @default(false)
+  isPublished       Boolean         @default(false)
+  isFocusMode       Boolean         @default(false)
+  isUpcoming        Boolean         @default(false)
+  endDate           DateTime?
+  isTaxFree         Boolean         @default(false)
+  categoryId        String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  platformId        String?
+  detailImages      DetailImage[]
+  category          Category?       @relation(fields: [categoryId], references: [id])
+  purchases         EbookPurchase[]
+  tossCustomers     TossCustomer[]
+  productBadge      ProductBadge[]  @relation("EbookToProductBadge")
+}
+
+model EbookPurchase {
+  id             String      @id @default(uuid())
+  userProfileId  String      @db.Uuid
+  ebookId        String
+  purchasePrice  Int
+  downloadCount  Int         @default(0)
+  lastDownloadAt DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  platformId     String?     @db.Uuid
+  ebook          Ebook       @relation(fields: [ebookId], references: [id], onDelete: Cascade)
+  Platform       Platform?   @relation(fields: [platformId], references: [id], onDelete: NoAction)
+  UserProfile    UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([userProfileId, ebookId])
+}
+
+model AdminUser {
+  id               String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String       @unique
+  platformId       String?      @db.Uuid
+  nickname         String?
+  role             String
+  created_at       DateTime     @default(now()) @db.Timestamp(6)
+  updated_at       DateTime
+  password         String
+  email            String       @unique
+  resetToken       String?      @unique
+  resetTokenExpiry DateTime?    @db.Timestamptz(6)
+  userName         String?
+  Platform         Platform?    @relation(fields: [platformId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_admin_user_platform")
+  Enrollment       Enrollment[]
+}
+
+model AuthLoginAttempt {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ip        String
+  email     String?
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([email, createdAt], map: "idx_attempt_email_created_at")
+  @@index([ip, createdAt], map: "idx_attempt_ip_created_at")
+}
+
+model AutoIssueCoupon {
+  courseId  String
+  couponId  String
+  createdAt DateTime? @default(now()) @db.Timestamp(6)
+  Coupon    Coupon    @relation(fields: [couponId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  Course    Course    @relation(fields: [courseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([courseId, couponId])
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model ErpCommissionDefaultPolicy {
+  id                                                    String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  teacherId                                             String?
+  erpUserId                                             String?              @db.Uuid
+  erpExternalPlatformId                                 String?              @db.Uuid
+  rate                                                  Int
+  isActive                                              Boolean              @default(true)
+  createdBy                                             String?              @db.Uuid
+  createdAt                                             DateTime             @default(now()) @db.Timestamptz(6)
+  updatedAt                                             DateTime
+  platformId                                            String?              @db.Uuid
+  adShareType                                           AdShareType?
+  adShareRate                                           Int?
+  teacherRsType                                         TeacherRsType?
+  teacherRsRate                                         Int?
+  otherCostType                                         OtherCostType?
+  otherCostRate                                         Int?
+  ErpUser_ErpCommissionDefaultPolicy_erpUserIdToErpUser ErpUser?             @relation("ErpCommissionDefaultPolicy_erpUserIdToErpUser", fields: [erpUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ErpUser_ErpCommissionDefaultPolicy_createdByToErpUser ErpUser?             @relation("ErpCommissionDefaultPolicy_createdByToErpUser", fields: [createdBy], references: [id], onUpdate: NoAction, map: "fk_default_commission_createdby")
+  ErpExternalPlatform                                   ErpExternalPlatform? @relation(fields: [erpExternalPlatformId], references: [id], onUpdate: NoAction, map: "fk_default_commission_erpexternalplatform")
+  Platform                                              Platform?            @relation(fields: [platformId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_default_commission_platform")
+  Teacher                                               Teacher?             @relation(fields: [teacherId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_default_commission_teacher")
+
+  @@index([erpExternalPlatformId], map: "idx_default_commission_erpexternalplatformid")
+  @@index([erpUserId], map: "idx_default_commission_erpuserid")
+  @@index([isActive], map: "idx_default_commission_isactive")
+  @@index([platformId], map: "idx_default_commission_platformid")
+  @@index([teacherId], map: "idx_default_commission_teacherid")
+}
+
+model ErpExternalPlatform {
+  id                         String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                       String                       @db.VarChar(100)
+  code                       String                       @unique @db.VarChar(50)
+  description                String?
+  createdAt                  DateTime                     @default(now()) @db.Timestamptz(6)
+  updatedAt                  DateTime
+  rate                       Int                          @default(0)
+  ErpCommissionDefaultPolicy ErpCommissionDefaultPolicy[]
+  ErpSettlementDetail        ErpSettlementDetail[]
+  ErpUser                    ErpUser[]
+  ErpUserReferralLink        ErpUserReferralLink[]
+  User                       User[]
+}
+
+model ErpMenu {
+  id                    String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                  String                  @db.VarChar(100)
+  path                  String                  @db.VarChar(200)
+  icon                  String?                 @db.VarChar(50)
+  parentId              String?                 @db.Uuid
+  orderSeq              Int
+  isActive              Boolean?                @default(true)
+  createdAt             DateTime?               @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime?
+  menuVisible           Boolean                 @default(true)
+  ErpMenu               ErpMenu?                @relation("ErpMenuToErpMenu", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "ErpMenu_parentid_fkey")
+  other_ErpMenu         ErpMenu[]               @relation("ErpMenuToErpMenu")
+  ErpRoleGroupToErpMenu ErpRoleGroupToErpMenu[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model ErpRoleGroup {
+  id                    String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                  String                  @unique @db.VarChar(50)
+  description           String?
+  createdAt             DateTime?               @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime?
+  nameKor               String?
+  organization          OrganizationType?
+  roleLevel             RoleLevelType?
+  ErpUser               ErpUser[]
+  User                  User[]
+  ErpRoleGroupToErpMenu ErpRoleGroupToErpMenu[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model ErpSettlement {
+  id                      String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  platformId              String?                   @db.Uuid
+  settlementYear          Int
+  settlementMonth         Int
+  totalAmount             BigInt
+  courseCount             Int                       @default(0)
+  createdAt               DateTime                  @default(now()) @db.Timestamptz(6)
+  updatedAt               DateTime
+  settlementDepositDate   DateTime?                 @db.Date
+  settlementFileUrl       String?                   @db.VarChar(500)
+  pgFeeAmount             BigInt?                   @default(0)
+  systemNovaFeeAmount     BigInt?                   @default(0)
+  totalRevenue            BigInt?                   @default(0)
+  totalEnrollmentCount    Int?                      @default(0)
+  paymentType             PaymentType?
+  requestedBy             String?                   @db.Uuid
+  requestedAt             DateTime?
+  note                    String?
+  totalPayableAmount      Int?                      @default(0)
+  Platform                Platform?                 @relation(fields: [platformId], references: [id], map: "ErpSettlement_platformid_fkey")
+  ErpUser                 ErpUser?                  @relation(fields: [requestedBy], references: [id], onUpdate: NoAction)
+  ErpSettlementDetail     ErpSettlementDetail[]
+  ErpSettlementFile       ErpSettlementFile[]
+  ErpSettlementHistory    ErpSettlementHistory[]
+  ErpSettlementTossPayout ErpSettlementTossPayout[]
+
+  @@unique([platformId, settlementYear, settlementMonth])
+  @@index([settlementYear, settlementMonth])
+  @@index([settlementDepositDate], map: "idx_erp_settlement_deposit_date")
+  @@index([paymentType], map: "idx_erp_settlement_payment_type")
+  @@index([requestedAt], map: "idx_erp_settlement_requested_at")
+  @@index([requestedBy], map: "idx_erp_settlement_requested_by")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model ErpSettlementDetail {
+  id                  String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  erpSettlementId     String               @db.Uuid
+  courseId            String
+  platformId          String?              @db.Uuid
+  externalPlatformId  String?              @db.Uuid
+  targetType          EntityType
+  targetId            String?              @db.Uuid
+  amount              BigInt
+  createdAt           DateTime             @default(now()) @db.Timestamptz(6)
+  updatedAt           DateTime
+  status              SettlementStatusType @default(DRAFT)
+  courseName          String?              @db.VarChar(500)
+  targetName          String?              @db.VarChar(200)
+  commissionRate      Decimal?             @default(0) @db.Decimal(5, 2)
+  enrollmentCount     Int?                 @default(0)
+  revenue             BigInt?              @default(0)
+  pgFeeRate           Decimal?             @default(0) @db.Decimal(5, 2)
+  pgFeeAmount         BigInt?              @default(0)
+  systemNovaFeeRate   Decimal?             @default(0) @db.Decimal(5, 2)
+  systemNovaFeeAmount BigInt?              @default(0)
+  sortOrder           Int?                 @default(0)
+  adShareType         AdShareType?
+  adShareRate         Int?
+  adShareAmount       BigInt?              @default(0)
+  teacherRsType       TeacherRsType?
+  teacherRsRate       Int?
+  teacherRsAmount     BigInt?              @default(0)
+  otherCostRate       Int?
+  otherCostAmount     BigInt?              @default(0)
+  fileUrl             String?              @db.VarChar(500)
+  otherCostType       OtherCostType?
+  netProfit           BigInt?
+  Course              Course               @relation(fields: [courseId], references: [id])
+  ErpSettlement       ErpSettlement        @relation(fields: [erpSettlementId], references: [id], onDelete: NoAction)
+  ErpExternalPlatform ErpExternalPlatform? @relation(fields: [externalPlatformId], references: [id])
+  Platform            Platform?            @relation(fields: [platformId], references: [id])
+
+  @@index([courseId])
+  @@index([erpSettlementId])
+  @@index([externalPlatformId])
+  @@index([platformId])
+  @@index([status])
+  @@index([targetType, targetId])
+  @@index([adShareType, adShareRate], map: "idx_erp_settlement_detail_ad_share")
+  @@index([erpSettlementId, courseId, sortOrder], map: "idx_erp_settlement_detail_sort_order")
+  @@index([teacherRsType, teacherRsRate], map: "idx_erp_settlement_detail_teacher_rs")
+}
+
+model ErpSettlementFile {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  erpSettlementId String        @db.Uuid
+  fileName        String        @db.VarChar(255)
+  fileUrl         String        @db.VarChar(500)
+  fileType        String        @db.VarChar(50)
+  fileSize        Int?
+  createdAt       DateTime?     @default(now()) @db.Timestamptz(6)
+  createdBy       String?       @db.Uuid
+  ErpUser         ErpUser?      @relation(fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ErpSettlement   ErpSettlement @relation(fields: [erpSettlementId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([erpSettlementId], map: "idx_erp_settlement_file_settlement_id")
+}
+
+model ErpSettlementHistory {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  erpSettlementId String        @db.Uuid
+  action          String        @db.VarChar(50)
+  previousStatus  String?       @db.VarChar(50)
+  newStatus       String?       @db.VarChar(50)
+  comment         String?
+  createdAt       DateTime?     @default(now()) @db.Timestamptz(6)
+  createdBy       String?       @db.Uuid
+  ErpUser         ErpUser?      @relation(fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ErpSettlement   ErpSettlement @relation(fields: [erpSettlementId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([createdAt], map: "idx_erp_settlement_history_created_at")
+  @@index([erpSettlementId], map: "idx_erp_settlement_history_settlement_id")
+}
+
+model ErpSettlementMemo {
+  id                                           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  platformId                                   String    @db.Uuid
+  courseId                                     String
+  settlementYear                               Int
+  settlementMonth                              Int
+  content                                      String?
+  createdAt                                    DateTime? @default(now()) @db.Timestamptz(6)
+  updatedAt                                    DateTime  @db.Timestamptz(6)
+  createdBy                                    String?   @db.Uuid
+  updatedBy                                    String?   @db.Uuid
+  Course                                       Course    @relation(fields: [courseId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_erp_settlement_memo_course")
+  ErpUser_ErpSettlementMemo_createdByToErpUser ErpUser?  @relation("ErpSettlementMemo_createdByToErpUser", fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_erp_settlement_memo_created_by")
+  Platform                                     Platform  @relation(fields: [platformId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_erp_settlement_memo_platform")
+  ErpUser_ErpSettlementMemo_updatedByToErpUser ErpUser?  @relation("ErpSettlementMemo_updatedByToErpUser", fields: [updatedBy], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_erp_settlement_memo_updated_by")
+
+  @@unique([courseId, platformId, settlementYear, settlementMonth], map: "ux_erp_settlement_memo_key")
+  @@index([courseId], map: "idx_erp_settlement_memo_course")
+  @@index([settlementYear, settlementMonth], map: "idx_erp_settlement_memo_period")
+  @@index([platformId], map: "idx_erp_settlement_memo_platform")
+}
+
+model ErpSettlementTossPayout {
+  id                String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  settlementId      String               @db.Uuid
+  payoutSequence    Int
+  amount            BigInt
+  status            SettlementStatusType @default(DRAFT)
+  tossPayoutId      String?              @db.VarChar(200)
+  refPayoutId       String               @unique @db.VarChar(200)
+  paymentType       PaymentType
+  scheduledDate     DateTime?            @db.Date
+  requestedAt       DateTime?            @db.Timestamp(6)
+  requestedBy       String?              @db.Uuid
+  actualDepositDate DateTime?            @db.Date
+  failureReason     String?
+  createdAt         DateTime?            @default(now()) @db.Timestamp(6)
+  updatedAt         DateTime             @db.Timestamp(6)
+  ErpUser           ErpUser?             @relation(fields: [requestedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ErpSettlement     ErpSettlement        @relation(fields: [settlementId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([settlementId, payoutSequence], map: "unique_settlement_sequence")
+  @@index([requestedAt], map: "idx_payout_requested_at")
+  @@index([settlementId], map: "idx_payout_settlement")
+  @@index([status], map: "idx_payout_status")
+  @@index([tossPayoutId], map: "idx_payout_toss_id")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model ErpUser {
+  id                                                                       String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  username                                                                 String                       @unique @db.VarChar(50)
+  email                                                                    String                       @unique @db.VarChar(255)
+  passwordHash                                                             String
+  roleGroupId                                                              String?                      @db.Uuid
+  isActive                                                                 Boolean?                     @default(true)
+  lastLogin                                                                DateTime?                    @db.Timestamptz(6)
+  createdAt                                                                DateTime?                    @default(now()) @db.Timestamptz(6)
+  updatedAt                                                                DateTime?
+  erpExternalPlatformId                                                    String?                      @db.Uuid
+  userType                                                                 UserType?
+  orgTeacherId                                                             String?
+  platformId                                                               String?                      @db.Uuid
+  phone                                                                    String?
+  ErpCommissionDefaultPolicy_ErpCommissionDefaultPolicy_erpUserIdToErpUser ErpCommissionDefaultPolicy[] @relation("ErpCommissionDefaultPolicy_erpUserIdToErpUser")
+  ErpCommissionDefaultPolicy_ErpCommissionDefaultPolicy_createdByToErpUser ErpCommissionDefaultPolicy[] @relation("ErpCommissionDefaultPolicy_createdByToErpUser")
+  ErpSettlement                                                            ErpSettlement[]
+  ErpSettlementFile                                                        ErpSettlementFile[]
+  ErpSettlementHistory                                                     ErpSettlementHistory[]
+  ErpSettlementMemo_ErpSettlementMemo_createdByToErpUser                   ErpSettlementMemo[]          @relation("ErpSettlementMemo_createdByToErpUser")
+  ErpSettlementMemo_ErpSettlementMemo_updatedByToErpUser                   ErpSettlementMemo[]          @relation("ErpSettlementMemo_updatedByToErpUser")
+  ErpSettlementTossPayout                                                  ErpSettlementTossPayout[]
+  ErpExternalPlatform                                                      ErpExternalPlatform?         @relation(fields: [erpExternalPlatformId], references: [id])
+  Teacher                                                                  Teacher?                     @relation(fields: [orgTeacherId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  Platform_ErpUser_platformIdToPlatform                                    Platform?                    @relation("ErpUser_platformIdToPlatform", fields: [platformId], references: [id])
+  ErpRoleGroup                                                             ErpRoleGroup?                @relation(fields: [roleGroupId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "ErpUser_rolegroupid_fkey")
+  ErpUserReferralLink                                                      ErpUserReferralLink[]
+  Payment                                                                  Payment[]
+  PaymentMemo                                                              PaymentMemo[]
+  Platform_ErpUserInfluencerToPlatform                                     Platform[]                   @relation("ErpUserInfluencerToPlatform")
+
+  @@index([erpExternalPlatformId], map: "idx_erp_user_external_platform")
+  @@index([platformId], map: "idx_erp_user_platform")
+  @@index([orgTeacherId], map: "idx_erp_user_teacher")
+}
+
+model ErpUserReferralLink {
+  id                    String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code                  String              @unique @db.VarChar(50)
+  name                  String              @db.VarChar(100)
+  description           String?
+  erpUserId             String              @db.Uuid
+  erpExternalPlatformId String              @db.Uuid
+  isActive              Boolean             @default(true)
+  createdAt             DateTime            @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime
+  ErpExternalPlatform   ErpExternalPlatform @relation(fields: [erpExternalPlatformId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "ErpUserReferralLink_erpexternalplatformid_fkey")
+  ErpUser               ErpUser             @relation(fields: [erpUserId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "ErpUserReferralLink_erpuserid_fkey")
+  Order                 Order[]
+
+  @@index([erpUserId], map: "idx_erp_user_referral_link_erp_user")
+  @@index([erpExternalPlatformId], map: "idx_erp_user_referral_link_external_platform")
+}
+
+model Order {
+  orderName             String
+  userProfileId         String?              @db.Uuid
+  userId                String
+  status                OrderStatus          @default(PENDING)
+  amount                Int
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime
+  courseId              String?
+  erpUserReferralLinkId String?              @db.Uuid
+  discountedPrice       Int?
+  originalPrice         Int
+  productId             String
+  productOption         Json?
+  productOptionId       String?
+  productTitle          String
+  remainingAmount       Int
+  usedCoupon            Json?
+  type                  OrderType
+  id                    String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  paidAmount            Int                  @default(0)
+  platformId            String?              @db.Uuid
+  productType           OrderProductType     @default(COURSE)
+  funnelType            String?
+  orderNumber           String?              @unique @db.VarChar(15)
+  Course                Course?              @relation(fields: [courseId], references: [id])
+  ErpUserReferralLink   ErpUserReferralLink? @relation(fields: [erpUserReferralLinkId], references: [id])
+  Platform              Platform?            @relation(fields: [platformId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  UserProfile           UserProfile?         @relation(fields: [userProfileId], references: [id])
+  Payment               Payment[]
+
+  @@index([courseId])
+  @@index([erpUserReferralLinkId])
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model Payment {
+  orderId             String          @db.Uuid
+  tossPaymentKey      String?         @unique
+  couponType          String?
+  couponAmount        Int?
+  finalPrice          Int
+  isTaxFree           Boolean         @default(false)
+  paymentMethod       PaymentMethod   @default(CARD)
+  paymentStatus       PaymentStatus   @default(READY)
+  cancelAmount        Int?
+  cancelReason        String?
+  refundableAmount    Int?
+  canceledAt          DateTime?
+  receiptUrl          String?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime
+  id                  String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cancelErpUserId     String?         @db.Uuid
+  isPartialCancelable Boolean?
+  mId                 String?
+  tossSecretKey       String?
+  fee                 Int             @default(0)
+  Order               Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  ErpUser             ErpUser?        @relation(fields: [cancelErpUserId], references: [id], onUpdate: NoAction, map: "fk_payment_cancel_erp_user")
+  PaymentCancel       PaymentCancel[]
+  PaymentMemo         PaymentMemo[]
+  Transaction         Transaction[]
+  VirtualAccount      VirtualAccount?
+
+  @@index([cancelErpUserId], map: "idx_payment_cancel_erp_user_id")
+  @@index([mId, tossPaymentKey], map: "ix_payment_mid_tosspaymentkey")
+}
+
+model PaymentCancel {
+  id               String   @id
+  cancelAmount     Int
+  cancelReason     String
+  taxFreeAmount    Int
+  refundableAmount Int
+  cancelStatus     String   @default("DONE")
+  canceledAt       DateTime @default(now())
+  paymentId        String   @db.Uuid
+  Payment          Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+}
+
+model PaymentMemo {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  paymentId String   @db.Uuid
+  content   String
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime
+  erpUserId String?  @db.Uuid
+  ErpUser   ErpUser? @relation(fields: [erpUserId], references: [id], onUpdate: NoAction, map: "fk_payment_memo_erp_user")
+  Payment   Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_payment_memo_payment")
+
+  @@index([createdAt], map: "idx_payment_memo_created_at")
+  @@index([erpUserId], map: "idx_payment_memo_erp_user_id")
+  @@index([paymentId], map: "idx_payment_memo_payment_id")
+}
+
+model Platform {
+  id                                   String                       @id @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                                 String
+  code                                 String                       @unique
+  isActive                             Boolean                      @default(false)
+  contractEndAt                        DateTime?                    @db.Timestamptz(6)
+  contractStartAt                      DateTime?                    @db.Timestamptz(6)
+  pgRateType                           PgRateType?                  @default(PG)
+  rate                                 Decimal?                     @default(0.00) @db.Decimal(5, 2)
+  settlementDay                        Int?                         @default(25)
+  systemNovaRate                       Decimal?                     @default(15.00) @db.Decimal(5, 2)
+  siteUrl                              String?                      @unique
+  createdAt                            DateTime                     @default(now()) @db.Timestamptz(6)
+  updatedAt                            DateTime
+  colorHex                             String?                      @db.VarChar(9)
+  tossSecretKey                        String?
+  AdminUser                            AdminUser[]
+  Category                             Category[]
+  Contact                              Contact[]
+  Coupon                               Coupon[]
+  Course                               Course[]
+  EbookPurchase                        EbookPurchase[]
+  ErpCommissionDefaultPolicy           ErpCommissionDefaultPolicy[]
+  ErpSettlement                        ErpSettlement[]
+  ErpSettlementDetail                  ErpSettlementDetail[]
+  ErpSettlementMemo                    ErpSettlementMemo[]
+  ErpUser_ErpUser_platformIdToPlatform ErpUser[]                    @relation("ErpUser_platformIdToPlatform")
+  Faq                                  Faq[]
+  FreeCourse                           FreeCourse[]
+  Notice                               Notice[]
+  Order                                Order[]
+  Post                                 Post[]
+  ProductBadge                         ProductBadge[]
+  Seller                               Seller[]
+  SiteSetting                          SiteSetting[]
+  Slider                               Slider[]
+  Teacher                              Teacher[]
+  Terms                                Terms[]
+  TossCustomer                         TossCustomer[]
+  User                                 User[]
+  UserProfile                          UserProfile[]
+  ErpUser_ErpUserInfluencerToPlatform  ErpUser[]                    @relation("ErpUserInfluencerToPlatform")
+}
+
+model ReferralLink {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  freeCourseId String
+  urlLink      String
+  createdAt    DateTime   @default(now()) @db.Timestamptz(6)
+  FreeCourse   FreeCourse @relation(fields: [freeCourseId], references: [id], onDelete: Cascade)
+}
+
+model ReferralLog {
+  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userProfileId String      @db.Uuid
+  channel       String?
+  freeCourseId  String?
+  code          String?
+  media         String?
+  createdAt     DateTime    @default(now()) @db.Timestamptz(6)
+  isNewUser     Boolean?    @default(true)
+  FreeCourse    FreeCourse? @relation(fields: [freeCourseId], references: [id])
+  UserProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model ReferralMedia {
+  id         String              @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  channel    ReferralChannelType @default(COMMON)
+  name       String
+  code       String
+  created_at DateTime            @default(now()) @db.Timestamptz(6)
+  platformId String?             @db.Uuid
+
+  @@ignore
+}
+
+model RefundReceiveAccount {
+  id               String         @id
+  bankCode         String
+  accountNumber    String
+  holderName       String
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime
+  virtualAccountId String         @unique
+  VirtualAccount   VirtualAccount @relation(fields: [virtualAccountId], references: [id], onDelete: Cascade)
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model Seller {
+  id                 String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sellerId           String            @unique @db.VarChar(50)
+  sellerType         SellerType
+  platformId         String            @db.Uuid
+  companyName        String?           @db.VarChar(200)
+  businessNumber     String?           @db.VarChar(20)
+  representativeName String            @db.VarChar(100)
+  accountHolder      String            @db.VarChar(100)
+  bankName           String            @db.VarChar(100)
+  accountNumber      String            @db.VarChar(50)
+  phoneNumber        String            @db.VarChar(20)
+  email              String            @db.VarChar(255)
+  isActive           Boolean           @default(true)
+  createdAt          DateTime          @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime
+  status             SellerStatusType? @default(APPROVAL_REQUIRED)
+  tossId             String?           @unique
+  Platform           Platform          @relation(fields: [platformId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_seller_platform")
+
+  @@index([businessNumber], map: "idx_seller_business_number")
+  @@index([isActive], map: "idx_seller_is_active")
+  @@index([platformId], map: "idx_seller_platform_id")
+  @@index([sellerId], map: "idx_seller_seller_id")
+  @@index([sellerType], map: "idx_seller_seller_type")
+}
+
+model Slider {
+  id          String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title       String
+  image       String
+  imageMobile String
+  link        String?
+  isBlank     Boolean?   @default(false)
+  isShow      Boolean    @default(false)
+  position    Int
+  platformId  String     @db.Uuid
+  type        SliderType
+  createdAt   DateTime?  @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime?
+  Platform    Platform   @relation(fields: [platformId], references: [id], onDelete: SetNull)
+}
+
+model TossSettlement {
+  id                           BigInt    @id @default(autoincrement())
+  platformId                   String    @db.Uuid
+  mId                          String
+  paymentKey                   String
+  transactionKey               String
+  orderId                      String
+  currency                     String
+  method                       String
+  approvedAt                   DateTime? @db.Timestamptz(6)
+  soldDate                     DateTime? @db.Date
+  paidOutDate                  DateTime? @db.Date
+  amount                       BigInt?
+  interestFee                  BigInt?
+  feeTotal                     BigInt?
+  supplyAmount                 BigInt?
+  vat                          BigInt?
+  payOutAmount                 BigInt?
+  cardIssuerCode               String?
+  cardAcquirerCode             String?
+  cardNumber                   String?
+  cardInstallmentPlanMonths    Int?
+  cardIsInterestFree           Boolean?
+  cardInterestPayer            String?
+  cardApproveNo                String?
+  cardUseCardPoint             Boolean?
+  cardCardType                 String?
+  cardOwnerType                String?
+  cardAcquireStatus            String?
+  cardAmount                   BigInt?
+  vaAccountNumber              String?
+  vaAccountType                String?
+  vaBankCode                   String?
+  vaCustomerName               String?
+  vaDueDate                    DateTime? @db.Timestamptz(6)
+  vaExpired                    Boolean?
+  vaSettlementStatus           String?
+  vaRefundStatus               String?
+  vaRefundReceiveAccount       Json?
+  vaDepositorName              String?
+  cancelTransactionKey         String?
+  cancelReason                 String?
+  cancelTaxExemptionAmount     BigInt?
+  canceledAt                   DateTime? @db.Timestamptz(6)
+  cancelCardDiscountAmount     BigInt?
+  cancelTransferDiscountAmount BigInt?
+  cancelEasyPayDiscountAmount  BigInt?
+  cancelReceiptKey             String?
+  cancelStatus                 String?
+  cancelRequestId              String?
+  cancelAmount                 BigInt?
+  cancelTaxFreeAmount          BigInt?
+  cancelRefundableAmount       BigInt?
+  createdAt                    DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@unique([mId, transactionKey, soldDate], map: "ux_toss_settlement_mid_transactionkey_sold_k")
+  @@index([mId], map: "ix_toss_settlement_m_id")
+  @@index([mId, paymentKey], map: "ix_toss_settlement_mid_paymentkey")
+  @@index([paidOutDate], map: "ix_toss_settlement_paid_out_date")
+  @@index([paymentKey], map: "ix_toss_settlement_payment_key")
+  @@index([platformId], map: "ix_toss_settlement_platform_id")
+  @@index([soldDate], map: "ix_toss_settlement_sold_date")
+  @@index([soldDate], map: "ix_toss_settlement_solddate")
+  @@index([soldDate, mId, paymentKey], map: "ix_toss_settlement_solddate_mid_paymentkey")
+}
+
+model Transaction {
+  orderId       String
+  method        PaymentMethod
+  status        PaymentStatus
+  customerKey   String
+  currency      String        @default("KRW")
+  amount        Int
+  userProfileId String?       @db.Uuid
+  paymentId     String        @db.Uuid
+  createdAt     DateTime      @default(now())
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  Payment       Payment       @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  UserProfile   UserProfile?  @relation(fields: [userProfileId], references: [id])
+}
+
+model UserProfile {
+  id            String          @id @db.Uuid
+  username      String?
+  nickname      String?
+  email         String?
+  password      String?
+  phone         String?
+  avatar        String?
+  kakaoId       String?
+  optedIn       Boolean         @default(false)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime
+  platformId    String?         @db.Uuid
+  ApplyCourse   ApplyCourse[]
+  Contact       Contact[]
+  EbookPurchase EbookPurchase[]
+  Enrollment    Enrollment[]
+  Order         Order[]
+  ReferralLog   ReferralLog[]
+  Review        Review[]
+  TossCustomer  TossCustomer[]
+  Transaction   Transaction[]
+  UserCoupon    UserCoupon[]
+  Platform      Platform?       @relation(fields: [platformId], references: [id], onDelete: NoAction)
+  UserProgress  UserProgress[]
+
+  @@unique([email, platformId])
+  @@unique([kakaoId, platformId])
+}
+
+model VirtualAccount {
+  id                   String                @id
+  accountNumber        String
+  bankCode             String
+  customerName         String
+  dueDate              DateTime
+  refundStatus         String                @default("NONE")
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime
+  paymentId            String                @unique @db.Uuid
+  tossCustomerId       String?               @unique
+  RefundReceiveAccount RefundReceiveAccount?
+  Payment              Payment               @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  TossCustomer         TossCustomer?         @relation(fields: [tossCustomerId], references: [id])
+}
+
+model ErpRoleGroupToErpMenu {
+  A            String       @db.Uuid
+  B            String       @db.Uuid
+  ErpRoleGroup ErpRoleGroup @relation(fields: [A], references: [id], onDelete: Cascade)
+  ErpMenu      ErpMenu      @relation(fields: [B], references: [id], onDelete: Cascade)
+
+  @@id([A, B], map: "_ErpRoleGroupToErpMenu_AB_pkey")
+  @@index([B], map: "_ErpRoleGroupToErpMenu_B_index")
+  @@map("_ErpRoleGroupToErpMenu")
+}
+
+enum CategoryType {
+  COURSE
+  FREE_COURSE
+  EBOOK
+  TEACHER
+  FAQ
+  NOTICE
+}
+
+/// This enum is commented in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+enum AdShareType {
+  SHARE
+  PLATFORM
+}
+
+enum BaseType {
+  TOTAL_SALES
+  REMAINING_AMOUNT
+  REFERRAL_SALES
+  DEPENDENT_AMOUNT
+}
+
+enum CalculationType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+enum CourseProductType {
+  SIMPLE
+  OPTION
+}
+
+/// This enum is commented in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+enum EntityType {
+  PLATFORM
+  EXTERNAL_PLATFORM
+  TEACHER
+  INFLUENCER
+  SYSTEM
+  CARD_FEE
+}
+
+enum OrderProductType {
+  COURSE
+  EBOOK
+}
+
+enum OrderStatus {
+  PENDING
+  IN_PARTIAL_PROGRESS
+  PAID
+  PARTIAL_REFUNDED
+  REFUNDED
+  REFUND_REQUESTED
+  REFUND_FAILED
+  CANCELED
+  FAILED
+}
+
+enum OrderType {
+  BULK_PAYMENT
+  SPLIT_PAYMENT
+}
+
+/// This enum is commented in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+enum OrganizationType {
+  SYSTEM_NOVA
+  PLATFORM
+  MCN
+}
+
+/// This enum is commented in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+enum OtherCostType {
+  SHARE
+  PLATFORM
+}
+
+enum PaymentMethod {
+  CARD
+  TRANSFER
+  VIRTUAL_ACCOUNT
+  EASY_PAY
+  DIRECT_DEPOSIT
+}
+
+enum PaymentStatus {
+  READY
+  WAITING_FOR_DEPOSIT
+  WAITING_FOR_DIRECT_DEPOSIT
+  DONE
+  CANCELED
+  PARTIAL_CANCELED
+  FAILED
+}
+
+/// This enum is commented in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+enum PaymentType {
+  IMMEDIATE
+  SCHEDULED
+}
+
+enum PgRateType {
+  PG
+  CUSTOM
+}
+
+enum PipelineType {
+  MAIN
+  PLATFORM
+  EXTERNAL_PLATFORM
+}
+
+/// This enum is commented in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+enum ReferralChannelType {
+  COMMON
+  ORGANIC
+  PAID
+  INFLUENCER
+}
+
+/// This enum is commented in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+enum RoleLevelType {
+  SUPER_ADMIN
+  ADMIN
+  TEACHER
+  VIEWER
+}
+
+/// This enum is commented in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+enum SellerStatusType {
+  APPROVAL_REQUIRED
+  PARTIALLY_APPROVED
+  KYC_REQUIRED
+  APPROVED
+}
+
+/// This enum is commented in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+enum SellerType {
+  INDIVIDUAL
+  INDIVIDUAL_BUSINESS
+  CORPORATE
+}
+
+/// This enum is commented in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+enum SettlementStatusType {
+  DRAFT
+  REQUESTED
+  APPROVED
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
+/// This enum is commented in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+enum SettlementType {
+  MAIN
+  TEACHER
+  INFLUENCER
+}
+
+enum SliderType {
+  MAIN
+  BOTTOM
+}
+
+/// This enum is commented in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+enum TeacherRsType {
+  SHARE
+  PLATFORM
+}
+
+enum TermsType {
+  PRIVACY
+  TERMS_OF_USE
+  REFUND
+}
+
+/// This enum is commented in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+enum TransactionType {
+  PURCHASE
+  REFUND
+  ADJUSTMENT
+}
+
+enum UserRole {
+  viewer
+  editor
+  admin
+  teacher
+  student
+  manager
+  operator
+}
+
+/// This enum is commented in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+enum UserType {
+  SYSTEM_ADMIN
+  SETTLEMENT_REQUESTER
+  SETTLEMENT_APPROVER
+  VIEWER
+  PLATFORM_ADMIN
+  TEACHER
+  INFLUENCER
+  EXTERNAL_PLATFORM_ADMIN
+}
+
+/// This enum is commented in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+enum referralType {
+  SOURCE
+  PLATFORM
+}

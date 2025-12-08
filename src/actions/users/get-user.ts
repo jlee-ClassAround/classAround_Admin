@@ -1,17 +1,17 @@
-"use server";
+'use server';
 
-import { db } from "@/lib/db";
+import { db } from '@/lib/cojoobooDb';
 
 export const getUser = async (userId: string | undefined) => {
-  try {
-    const user = await db.user.findUnique({
-      where: {
-        id: userId,
-      },
-    });
+    try {
+        const user = await db.user.findUnique({
+            where: {
+                id: userId,
+            },
+        });
 
-    return user;
-  } catch {
-    return null;
-  }
+        return user;
+    } catch {
+        return null;
+    }
 };

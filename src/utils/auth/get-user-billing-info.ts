@@ -1,20 +1,18 @@
-import { UserBillingInfo } from "@prisma/client";
-import { db } from "@/lib/db";
+import { UserBillingInfo } from '@prisma/client';
+import { db } from '@/lib/cojoobooDb';
 
 interface Props {
-  userId: string;
+    userId: string;
 }
 
 export type GetUserBillingInfo = UserBillingInfo | null;
 
-export async function getUserBillingInfo({
-  userId,
-}: Props): Promise<GetUserBillingInfo> {
-  const billingInfo = await db.userBillingInfo.findUnique({
-    where: {
-      userId,
-    },
-  });
+export async function getUserBillingInfo({ userId }: Props): Promise<GetUserBillingInfo> {
+    const billingInfo = await db.userBillingInfo.findUnique({
+        where: {
+            userId,
+        },
+    });
 
-  return billingInfo;
+    return billingInfo;
 }

@@ -1,0 +1,237 @@
+generator mysql {
+  provider = "prisma-client-js"
+  output   = "../../src/generate/mysql-client"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("MYSQL_DATABASE_URL")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model customer {
+  id                  String                @id @db.VarChar(255)
+  created_at          DateTime              @db.DateTime(6)
+  created_by          String                @db.VarChar(255)
+  updated_at          DateTime?             @db.DateTime(6)
+  updated_by          String?               @db.VarChar(255)
+  login_id            String                @unique(map: "UK3xp66t6lnuge3qe51r7wos0di") @db.VarChar(255)
+  login_pw            String?               @db.VarChar(255)
+  name                String?               @db.VarChar(255)
+  role                String?               @db.VarChar(255)
+  tel_no              String?               @db.VarChar(255)
+  franchise_id        String?               @db.VarChar(255)
+  franchise           franchise?            @relation(fields: [franchise_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FKbrxrmbbc6dx3nb2c0wwvnquwr")
+  customer_permission customer_permission[]
+
+  @@index([franchise_id], map: "FKbrxrmbbc6dx3nb2c0wwvnquwr")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model customer_permission {
+  id                           String                         @id @db.VarChar(255)
+  created_at                   DateTime                       @db.DateTime(6)
+  created_by                   String                         @db.VarChar(255)
+  updated_at                   DateTime?                      @db.DateTime(6)
+  updated_by                   String?                        @db.VarChar(255)
+  customer_id                  String?                        @db.VarChar(255)
+  customer                     customer?                      @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FKo56mu6nfun0pylhnit60lb62c")
+  customer_resource_permission customer_resource_permission[]
+
+  @@index([customer_id], map: "FKo56mu6nfun0pylhnit60lb62c")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model customer_resource_permission {
+  id                     String                                     @id @db.VarChar(255)
+  created_at             DateTime                                   @db.DateTime(6)
+  created_by             String                                     @db.VarChar(255)
+  updated_at             DateTime?                                  @db.DateTime(6)
+  updated_by             String?                                    @db.VarChar(255)
+  resource_id            String                                     @db.VarChar(255)
+  resource_type          customer_resource_permission_resource_type
+  customer_permission_id String                                     @db.VarChar(255)
+  customer_permission    customer_permission                        @relation(fields: [customer_permission_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK5d7gavgv5xxn5k2vit7o4rs7h")
+
+  @@unique([customer_permission_id, resource_type, resource_id], map: "UKbm56ml4cd3yt0y0sqph31141t")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model franchise {
+  id               String             @id @db.VarChar(255)
+  created_at       DateTime           @db.DateTime(6)
+  created_by       String             @db.VarChar(255)
+  updated_at       DateTime?          @db.DateTime(6)
+  updated_by       String?            @db.VarChar(255)
+  company_name     String?            @db.VarChar(255)
+  logo_img         String?            @db.VarChar(255)
+  customer         customer[]
+  upload_file      upload_file?       @relation(fields: [logo_img], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FKoo13bdn51kgg6e0adu4xtfh2c")
+  lecture          lecture[]
+  medium           medium[]
+  member           member[]
+  merchant         merchant[]
+  teacher          teacher[]
+  tracking         tracking[]
+  tracking_history tracking_history[]
+
+  @@index([logo_img], map: "FKoo13bdn51kgg6e0adu4xtfh2c")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model lecture {
+  id               String             @id @db.VarChar(255)
+  created_at       DateTime           @db.DateTime(6)
+  created_by       String             @db.VarChar(255)
+  updated_at       DateTime?          @db.DateTime(6)
+  updated_by       String?            @db.VarChar(255)
+  is_paid          Boolean            @db.Bit(1)
+  landing_url      String?            @db.VarChar(255)
+  name             String             @db.VarChar(255)
+  franchise_id     String?            @db.VarChar(255)
+  teacher_id       String?            @db.VarChar(255)
+  teacher          teacher?           @relation(fields: [teacher_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK2ea1ueblrv09ngwf3i0lf0h2o")
+  franchise        franchise?         @relation(fields: [franchise_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK5me5mgojdbr62mj29hfhc3rwc")
+  tracking         tracking[]
+  tracking_history tracking_history[]
+
+  @@index([teacher_id], map: "FK2ea1ueblrv09ngwf3i0lf0h2o")
+  @@index([franchise_id], map: "FK5me5mgojdbr62mj29hfhc3rwc")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model medium {
+  id               String             @id @db.VarChar(255)
+  created_at       DateTime           @db.DateTime(6)
+  created_by       String             @db.VarChar(255)
+  updated_at       DateTime?          @db.DateTime(6)
+  updated_by       String?            @db.VarChar(255)
+  name             String             @db.VarChar(255)
+  franchise_id     String?            @db.VarChar(255)
+  franchise        franchise?         @relation(fields: [franchise_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FKd7hkk371ik8q77ya477t6buot")
+  tracking         tracking[]
+  tracking_history tracking_history[]
+
+  @@index([franchise_id], map: "FKd7hkk371ik8q77ya477t6buot")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model member {
+  id               String             @id @db.VarChar(255)
+  created_at       DateTime           @db.DateTime(6)
+  created_by       String             @db.VarChar(255)
+  updated_at       DateTime?          @db.DateTime(6)
+  updated_by       String?            @db.VarChar(255)
+  billing_phone    String?            @db.VarChar(255)
+  first_name       String?            @db.VarChar(255)
+  franchise_id     String?            @db.VarChar(255)
+  franchise        franchise?         @relation(fields: [franchise_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FKbwol0bq6tw36bghia42ctw9h")
+  tracking_history tracking_history[]
+
+  @@index([franchise_id], map: "FKbwol0bq6tw36bghia42ctw9h")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model merchant {
+  id               String             @id @db.VarChar(255)
+  created_at       DateTime           @db.DateTime(6)
+  created_by       String             @db.VarChar(255)
+  updated_at       DateTime?          @db.DateTime(6)
+  updated_by       String?            @db.VarChar(255)
+  name             String             @db.VarChar(255)
+  franchise_id     String?            @db.VarChar(255)
+  franchise        franchise?         @relation(fields: [franchise_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FKe1ngx5wfen08bvjcc6exkiotv")
+  tracking         tracking[]
+  tracking_history tracking_history[]
+
+  @@index([franchise_id], map: "FKe1ngx5wfen08bvjcc6exkiotv")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model teacher {
+  id           String     @id @db.VarChar(255)
+  created_at   DateTime   @db.DateTime(6)
+  created_by   String     @db.VarChar(255)
+  updated_at   DateTime?  @db.DateTime(6)
+  updated_by   String?    @db.VarChar(255)
+  name         String     @db.VarChar(255)
+  franchise_id String?    @db.VarChar(255)
+  lecture      lecture[]
+  franchise    franchise? @relation(fields: [franchise_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FKc4a0dlr23l8knmw3s0bj6yug6")
+
+  @@index([franchise_id], map: "FKc4a0dlr23l8knmw3s0bj6yug6")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model tracking {
+  id             String     @id @db.VarChar(255)
+  created_at     DateTime   @db.DateTime(6)
+  created_by     String     @db.VarChar(255)
+  updated_at     DateTime?  @db.DateTime(6)
+  updated_by     String?    @db.VarChar(255)
+  ad_cost        BigInt
+  parameter_name String     @db.VarChar(255)
+  franchise_id   String?    @db.VarChar(255)
+  lecture_id     String     @db.VarChar(255)
+  medium_id      String     @db.VarChar(255)
+  merchant_id    String     @db.VarChar(255)
+  published_at   DateTime?  @db.DateTime(6)
+  franchise      franchise? @relation(fields: [franchise_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK6t4cmt9g5jphtm3moqpv7lu22")
+  lecture        lecture    @relation(fields: [lecture_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FKfix9wvufrx9o66fr8g5kftxhn")
+  medium         medium     @relation(fields: [medium_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FKqoparwfj7h4eaw5nryhsd6tp8")
+  merchant       merchant   @relation(fields: [merchant_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FKrvk0bh9curu1mydvurjxafcii")
+
+  @@index([franchise_id], map: "FK6t4cmt9g5jphtm3moqpv7lu22")
+  @@index([lecture_id], map: "FKfix9wvufrx9o66fr8g5kftxhn")
+  @@index([medium_id], map: "FKqoparwfj7h4eaw5nryhsd6tp8")
+  @@index([merchant_id], map: "FKrvk0bh9curu1mydvurjxafcii")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model tracking_history {
+  id             String     @id @db.VarChar(255)
+  created_at     DateTime   @db.DateTime(6)
+  created_by     String     @db.VarChar(255)
+  updated_at     DateTime?  @db.DateTime(6)
+  updated_by     String?    @db.VarChar(255)
+  inflow_url     String?    @db.VarChar(500)
+  ip             String?    @db.VarChar(255)
+  parameter_name String?    @db.VarChar(255)
+  franchise_id   String?    @db.VarChar(255)
+  lecture_id     String     @db.VarChar(255)
+  medium_id      String?    @db.VarChar(255)
+  member_id      String     @db.VarChar(255)
+  merchant_id    String?    @db.VarChar(255)
+  franchise      franchise? @relation(fields: [franchise_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK6uq5hy8x8too7b1qbk0bjc4c9")
+  member         member     @relation(fields: [member_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FKagi07w07k435mgmb7kqohq0lg")
+  medium         medium?    @relation(fields: [medium_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FKes6g7d6yr50gvk21x9ic5bpjy")
+  merchant       merchant?  @relation(fields: [merchant_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FKf39088bkclyijebrnlsxk6muy")
+  lecture        lecture    @relation(fields: [lecture_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FKl358lfq4e1o40max7yqfa916p")
+
+  @@index([franchise_id], map: "FK6uq5hy8x8too7b1qbk0bjc4c9")
+  @@index([member_id], map: "FKagi07w07k435mgmb7kqohq0lg")
+  @@index([medium_id], map: "FKes6g7d6yr50gvk21x9ic5bpjy")
+  @@index([merchant_id], map: "FKf39088bkclyijebrnlsxk6muy")
+  @@index([lecture_id], map: "FKl358lfq4e1o40max7yqfa916p")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model upload_file {
+  id                 String      @id @db.VarChar(255)
+  created_at         DateTime    @db.DateTime(6)
+  created_by         String      @db.VarChar(255)
+  updated_at         DateTime?   @db.DateTime(6)
+  updated_by         String?     @db.VarChar(255)
+  file_path          String?     @db.VarChar(255)
+  file_size          BigInt?
+  file_type          String?     @db.VarChar(255)
+  original_file_name String?     @db.VarChar(255)
+  stored_file_name   String?     @db.VarChar(255)
+  franchise          franchise[]
+}
+
+enum customer_resource_permission_resource_type {
+  LECTURE
+  MEDIUM
+  MERCHANT
+}

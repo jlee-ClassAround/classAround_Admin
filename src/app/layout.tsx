@@ -1,44 +1,54 @@
-import { GoogleTagManager } from "@next/third-parties/google";
-import type { Metadata } from "next";
-import "./globals.css";
+import type { Metadata } from 'next';
+import './globals.css';
 
-import { QueryProvider } from "@/providers/query-provider";
+import { cn } from '@/lib/utils';
+import { clashDisplay, freesectation, nexonWarhaven } from './fonts';
 
-import { cn } from "@/lib/utils";
-import GtmNoscript from "@/scripts/gtm-noscript";
-import { clashDisplay, freesectation, nexonWarhaven } from "./fonts";
+import { SidebarProvider } from '@/components/ui/sidebar';
+import { AdminSidebar } from '@/components/sidebar/admin-sidebar';
+import { SidebarTrigger } from '@/components/ui/sidebar';
+import { Toaster } from '@/components/ui/sonner';
 
 export const metadata: Metadata = {
-  title: {
-    default: "코주부클래스",
-    template: "%s - 코주부클래스",
-  },
-  description: "코주부클래스",
-  icons: {
-    icon: "/favicon.svg",
-  },
+    title: {
+        default: '클래스어라운드',
+        template: '%s - 클래스어라운드',
+    },
+    description: '클래스어라운드 관리자',
+    icons: { icon: '/favicon.svg' },
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  return (
-    <html lang="ko" className="bg-neutral-800" suppressHydrationWarning>
-      <GoogleTagManager gtmId="GTM-P5PPMBBQ" />
-      <body
-        className={cn(
-          clashDisplay.variable,
-          nexonWarhaven.variable,
-          freesectation.className,
-          "antialiased"
-        )}
-        suppressHydrationWarning
-      >
-        <QueryProvider>{children}</QueryProvider>
-        {/* <GtmNoscript /> */}
-      </body>
-    </html>
-  );
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+    return (
+        <html lang="ko" suppressHydrationWarning>
+            <body
+                className={cn(
+                    clashDisplay.variable,
+                    nexonWarhaven.variable,
+                    freesectation.className,
+                    'antialiased'
+                )}
+            >
+                <div className="light text-foreground bg-background">
+                    <SidebarProvider disableShortcuts>
+                        <AdminSidebar />
+                        <div className="relative w-full">
+                            <div className="sticky top-0 left-0 w-full h-12 z-10 flex items-center px-2 bg-neutral-50 border-b">
+                                <div className="md:hidden">
+                                    <SidebarTrigger />
+                                </div>
+                            </div>
+                            <div className="bg-slate-100 h-full">
+                                <div className="max-w-[1200px] mx-auto px-5 py-10 h-full w-full">
+                                    {children}
+                                </div>
+                            </div>
+                        </div>
+                    </SidebarProvider>
+                    <Toaster richColors theme="light" />
+                </div>
+                ;
+            </body>
+        </html>
+    );
 }

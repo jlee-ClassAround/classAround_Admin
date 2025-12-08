@@ -1,10 +1,10 @@
-"use server";
+'use server';
 
-import { db } from "@/lib/db";
+import { db } from '@/lib/cojoobooDb';
 
 interface Props {
-  userId?: string;
-  courseId?: string;
+    userId?: string;
+    courseId?: string;
 }
 
 /**
@@ -17,26 +17,26 @@ interface Props {
  * @returns 분할결제 진행 중이면 orderId가 담긴 객체, 그렇지 않으면 `false`
  */
 export async function getIsPartialPayments({ userId, courseId }: Props) {
-  if (!userId) return false;
+    if (!userId) return false;
 
-  const order = await db.order.findFirst({
-    where: {
-      userId: userId,
-      status: "IN_PARTIAL_PROGRESS",
-      ...(courseId
-        ? {
-            orderItems: {
-              some: {
-                courseId: courseId,
-              },
-            },
-          }
-        : {}),
-    },
-    select: {
-      id: true,
-    },
-  });
+    const order = await db.order.findFirst({
+        where: {
+            userId: userId,
+            status: 'IN_PARTIAL_PROGRESS',
+            ...(courseId
+                ? {
+                      orderItems: {
+                          some: {
+                              courseId: courseId,
+                          },
+                      },
+                  }
+                : {}),
+        },
+        select: {
+            id: true,
+        },
+    });
 
-  return order || false;
+    return order || false;
 }

@@ -1,32 +1,32 @@
-"use server";
+'use server';
 
-import { db } from "@/lib/db";
+import { db } from '@/lib/cojoobooDb';
 
 interface Props {
-  userId?: string;
+    userId?: string;
 }
 
 export async function getMypageEbooks({ userId }: Props) {
-  try {
-    if (!userId) return [];
+    try {
+        if (!userId) return [];
 
-    const ebookPurchases = await db.ebookPurchase.findMany({
-      where: {
-        userId,
-        ebook: {
-          isPublished: true,
-        },
-      },
-      include: {
-        ebook: true,
-      },
-    });
+        const ebookPurchases = await db.ebookPurchase.findMany({
+            where: {
+                userId,
+                ebook: {
+                    isPublished: true,
+                },
+            },
+            include: {
+                ebook: true,
+            },
+        });
 
-    const ebooks = ebookPurchases.map((ebook) => ebook.ebook);
+        const ebooks = ebookPurchases.map((ebook) => ebook.ebook);
 
-    return ebooks;
-  } catch (error) {
-    console.error(error);
-    return [];
-  }
+        return ebooks;
+    } catch (error) {
+        console.error(error);
+        return [];
+    }
 }
