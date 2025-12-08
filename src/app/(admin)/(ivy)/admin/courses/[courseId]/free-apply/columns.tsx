@@ -1,0 +1,257 @@
+"use client";
+
+import { DataTableColumnHeader } from "@/components/table/data-table-column-header";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { dateFormat } from "@/utils/formats";
+import { User } from "@prisma/client";
+import { ColumnDef, Row, Table } from "@tanstack/react-table";
+import { Edit, Loader2, MoreHorizontal } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+import { toast } from "sonner";
+
+interface UserWithAppliedAt extends User {
+  appliedAt: Date;
+}
+
+export const columns: ColumnDef<UserWithAppliedAt>[] = [
+  {
+    id: "select",
+    header: ({ table }) => (
+      <Checkbox
+        checked={
+          table.getIsAllPageRowsSelected() ||
+          (table.getIsSomePageRowsSelected() && "indeterminate")
+        }
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="Select all"
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="Select row"
+      />
+    ),
+  },
+  {
+    accessorKey: "username",
+    meta: {
+      label: "이름",
+    },
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="이름" />
+    ),
+    cell: ({ row }) => {
+      const data = row.original;
+
+      return (
+        <div className="max-w-[300px] truncate">
+          <Link href={`/admin/users/${data.id}`} className="hover:text-primary">
+            {data.username}
+          </Link>
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: "email",
+    meta: {
+      label: "이메일",
+    },
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="이메일" />
+    ),
+    cell: ({ row }) => row.original.email,
+  },
+
+  {
+    accessorKey: "phone",
+    meta: {
+      label: "연락처",
+    },
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="연락처" />
+    ),
+    cell: ({ row }) => row.original.phone,
+  },
+  {
+    accessorKey: "appliedAt",
+    meta: {
+      label: "신청일",
+    },
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="신청일" />
+    ),
+    cell: ({ row }) => (
+      <div className="text-sm truncate">
+        {dateFormat(row.original.appliedAt)}
+      </div>
+    ),
+  },
+
+  {
+    id: "actions",
+    size: 20,
+    // header: ({ table }) => <ActionHeader table={table} />,
+    cell: ({ row }) => <ActionCell row={row} />,
+  },
+];
+
+function ActionHeader({ table }: { table: Table<UserWithAppliedAt> }) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [templateId, setTemplateId] = useState("");
+
+  const selectedRows = table.getFilteredSelectedRowModel().rows;
+  const selectedRowLength = table.getFilteredSelectedRowModel().rows.length;
+  const userDatas = selectedRows.map((row) => row.original);
+
+  const handleSendKakaoMessage = async () => {
+    try {
+      if (!templateId) {
+        toast.error("템플릿 ID를 입력해주세요.");
+        return;
+      }
+
+      setIsLoading(true);
+      await fetch("/api/solapi/send-messages", {
+        method: "POST",
+        body: JSON.stringify({
+          templateId,
+          sendDatas: userDatas.map((user) => ({
+            to: user.phone!,
+            username: user.username,
+          })),
+        }),
+      });
+
+      toast.success("알림톡 발송 요청 완료");
+      setOpen(false);
+    } catch {
+      toast.error("오류가 발생했습니다.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <div className="flex justify-end">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              className="size-8 relative"
+              disabled={selectedRowLength === 0}
+            >
+              <span className="sr-only">전체 메뉴 열기</span>
+              <MoreHorizontal />
+              {selectedRowLength > 0 && (
+                <div className="absolute -top-1 -right-1 size-4 text-[11px] bg-primary rounded-full text-white aspect-square flex items-center justify-center">
+                  {selectedRowLength}
+                </div>
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>전체 설정</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              disabled={isLoading}
+              onClick={() => setOpen(true)}
+            >
+              카카오 알림톡 보내기
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>알림톡 보내기</DialogTitle>
+            <DialogDescription>
+              선택한 학생들에게 알림톡을 보내시겠습니까?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-y-2">
+            <Label>템플릿 ID</Label>
+            <Input
+              value={templateId}
+              onChange={(e) => setTemplateId(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              템플릿 ID는 카카오 알림톡 템플릿 페이지에서 확인할 수 있습니다.
+              잘못 입력할 경우 발송되지 않습니다.
+              {"(솔라피 링크: https://console.solapi.com/kakao/templates)"}
+            </p>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">취소</Button>
+            </DialogClose>
+
+            <Button disabled={isLoading} onClick={handleSendKakaoMessage}>
+              {isLoading ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                "보내기"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+function ActionCell({ row }: { row: Row<UserWithAppliedAt> }) {
+  const data = row.original;
+  return (
+    <div className="flex justify-end">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="size-8">
+            <span className="sr-only">메뉴 열기</span>
+            <MoreHorizontal />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuLabel>설정</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem>
+            <Link
+              href={`/admin/users/${data.id}`}
+              className="flex items-center"
+            >
+              <Edit className="size-4 mr-2 text-muted-foreground" />
+              상세보기
+            </Link>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}

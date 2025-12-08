@@ -1,0 +1,856 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id              String           @id @default(uuid())
+  username        String?
+  nickname        String?
+  email           String?
+  password        String?
+  phone           String?
+  avatar          String?
+  kakaoId         String?          @unique
+  kajabiContactId String?          @unique
+  optedIn         Boolean          @default(false)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  roleId          String?
+  applyCourses    ApplyCourse[]
+  contacts        Contact[]
+  ebookPurchases  EbookPurchase[]
+  enrollments     Enrollment[]
+  revenues        Revenue[]
+  revieww         Review[]
+  tossCustomers   TossCustomer[]
+  Role            Role?            @relation(fields: [roleId], references: [id])
+  userCoupons     UserCoupon[]
+  userProgresses  UserProgress[]
+  userTags        UserTag[]
+  userBillingInfo UserBillingInfo?
+  orders          Order[]
+  transactions    Transaction[]
+}
+
+model Course {
+  id                String         @id @default(uuid())
+  title             String         @default("")
+  description       String?
+  productType       ProductType    @default(SIMPLE)
+  originalPrice     Int?
+  discountedPrice   Int?
+  showInInstallment Boolean        @default(false)
+  thumbnail         String?
+  isPublished       Boolean        @default(false)
+  isFocusMode       Boolean        @default(false)
+  isUpcoming        Boolean        @default(false)
+  endDate           DateTime?
+  accessDuration    Int?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  categoryId        String?
+  isTaxFree         Boolean        @default(false)
+  kakaoRoomLink     String?
+  kakaoRoomPassword String?
+  maxPurchaseCount  Int?
+  isHidden          Boolean        @default(false)
+  chapters          Chapter[]
+  category          Category?      @relation(fields: [categoryId], references: [id])
+  options           CourseOption[]
+  detailImages      DetailImage[]
+  enrollments       Enrollment[]
+  reviews           Review[]
+  tossCustomers     TossCustomer[]
+  coupons           Coupon[]       @relation("CouponToCourse")
+  productBadge      ProductBadge[] @relation("CourseToProductBadge")
+  teachers          Teacher[]      @relation("CourseToTeacher")
+  orderItems        OrderItem[]
+}
+
+model FreeCourse {
+  id                String         @id @default(uuid())
+  title             String         @default("")
+  description       String?
+  thumbnail         String?
+  isPublished       Boolean        @default(false)
+  kakaoRoomLink     String?
+  kakaoRoomPassword String?
+  webhookUrl        String?
+  kakaoTemplateId   String?
+  kajabiTagId       String?
+  isUpcoming        Boolean        @default(false)
+  endDate           DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  categoryId        String?
+  location          String?
+  isHidden          Boolean        @default(false)
+  applyCourses      ApplyCourse[]
+  detailImages      DetailImage[]
+  category          Category?      @relation(fields: [categoryId], references: [id])
+  productBadge      ProductBadge[] @relation("FreeCourseToProductBadge")
+  teachers          Teacher[]      @relation("FreeCourseToTeacher")
+}
+
+model CourseOption {
+  id               String       @id @default(cuid())
+  courseId         String
+  name             String
+  originalPrice    Int
+  discountedPrice  Int?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  isTaxFree        Boolean      @default(false)
+  maxPurchaseCount Int?
+  course           Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  enrollments      Enrollment[]
+}
+
+model DetailImage {
+  id           String      @id @default(uuid())
+  name         String
+  imageUrl     String
+  position     Int
+  courseId     String?
+  ebookId      String?
+  uploadedAt   DateTime    @default(now())
+  freeCourseId String?
+  course       Course?     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  ebook        Ebook?      @relation(fields: [ebookId], references: [id], onDelete: Cascade)
+  freeCourse   FreeCourse? @relation(fields: [freeCourseId], references: [id], onDelete: Cascade)
+}
+
+model Role {
+  id    String @id
+  users User[]
+}
+
+model Category {
+  id          String       @id @default(uuid())
+  name        String
+  description String?
+  type        CategoryType
+  courses     Course[]
+  ebooks      Ebook[]
+  faqs        Faq[]
+  freeCourses FreeCourse[]
+  notices     Notice[]
+  teachers    Teacher[]
+
+  @@unique([name, type])
+}
+
+model Chapter {
+  id          String   @id @default(uuid())
+  title       String   @default("새로운 챕터")
+  description String?
+  position    Int
+  isPublished Boolean  @default(false)
+  courseId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons     Lesson[]
+}
+
+model Lesson {
+  id             String         @id @default(uuid())
+  title          String         @default("새로운 강의")
+  description    String?
+  position       Int
+  videoType      String         @default("vimeo")
+  videoUrl       String?
+  isPublished    Boolean        @default(false)
+  isFree         Boolean        @default(false)
+  chapterId      String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  attachments    Attachment[]
+  chapter        Chapter        @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  userProgresses UserProgress[]
+}
+
+model UserProgress {
+  id          String   @id @default(uuid())
+  isCompleted Boolean  @default(false)
+  userId      String
+  lessonId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+}
+
+model Attachment {
+  id        String   @id @default(cuid())
+  name      String   @default("new file")
+  url       String
+  lessonId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+}
+
+model Tag {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  userTags    UserTag[]
+}
+
+model UserTag {
+  id        String   @id @default(cuid())
+  userId    String
+  tagId     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tag       Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tagId])
+}
+
+model ProductBadge {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  color       String?
+  textColor   String?
+  courses     Course[]     @relation("CourseToProductBadge")
+  ebooks      Ebook[]      @relation("EbookToProductBadge")
+  freeCourses FreeCourse[] @relation("FreeCourseToProductBadge")
+}
+
+model Enrollment {
+  id             String        @id @default(uuid())
+  startDate      DateTime      @default(now())
+  endDate        DateTime?
+  isActive       Boolean       @default(true)
+  enrollCount    Int           @default(1)
+  userId         String
+  courseId       String
+  courseOptionId String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  course         Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseOption   CourseOption? @relation(fields: [courseOptionId], references: [id])
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+}
+
+model ApplyCourse {
+  id           String     @id @default(uuid())
+  userId       String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  freeCourseId String
+  freeCourse   FreeCourse @relation(fields: [freeCourseId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, freeCourseId])
+}
+
+model TossCustomer {
+  id            String  @id @default(uuid())
+  orderId       String  @unique
+  paymentKey    String  @unique
+  mId           String?
+  tossSecretKey String?
+
+  orderName        String
+  originalPrice    Int
+  discountPrice    Int?
+  couponType       String?
+  couponAmount     Int?
+  finalPrice       Int
+  paymentStatus    String          @default("COMPLETED")
+  paymentMethod    PaymentMethod   @default(CARD)
+  cancelAmount     Int?
+  cancelReason     String?
+  refundableAmount Int?
+  canceledAt       DateTime?
+  receiptUrl       String?
+  userId           String?
+  courseId         String?
+  ebookId          String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  isTaxFree        Boolean         @default(false)
+  productId        String
+  productOptionId  String?
+  productTitle     String
+  productType      String
+  productOption    Json?
+  course           Course?         @relation(fields: [courseId], references: [id])
+  ebook            Ebook?          @relation(fields: [ebookId], references: [id])
+  user             User?           @relation(fields: [userId], references: [id])
+  virtualAccount   VirtualAccount?
+
+  @@index([userId])
+  @@index([courseId])
+  @@index([ebookId])
+  @@index([paymentStatus])
+  @@index([createdAt])
+  @@index([productId])
+}
+
+model Teacher {
+  id          String       @id @default(uuid())
+  name        String
+  info        String?
+  profile     String?
+  categoryId  String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  isPublished Boolean      @default(false)
+  category    Category?    @relation(fields: [categoryId], references: [id])
+  courses     Course[]     @relation("CourseToTeacher")
+  freeCourses FreeCourse[] @relation("FreeCourseToTeacher")
+}
+
+model Coupon {
+  id             String       @id @default(uuid())
+  code           String       @unique
+  name           String
+  description    String?
+  discountType   String
+  discountAmount Int
+  expiryDate     DateTime
+  usageLimit     Int?
+  usedCount      Int          @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  userCoupons    UserCoupon[]
+  courses        Course[]     @relation("CouponToCourse")
+}
+
+model UserCoupon {
+  id        String    @id @default(uuid())
+  userId    String
+  couponId  String
+  isUsed    Boolean   @default(false)
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  coupon    Coupon    @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, couponId])
+}
+
+model Revenue {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String
+  amount    Int?
+  photo     String?
+  videoUrl  String?
+  view      Int      @default(0)
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Notice {
+  id          Int       @id @default(autoincrement())
+  title       String
+  content     String
+  view        Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  categoryId  String?
+  isPublished Boolean   @default(false)
+  category    Category? @relation(fields: [categoryId], references: [id])
+}
+
+model Faq {
+  id          Int       @id @default(autoincrement())
+  title       String
+  content     String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  categoryId  String?
+  isPublished Boolean   @default(false)
+  category    Category? @relation(fields: [categoryId], references: [id])
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String
+  rating    Float    @default(5)
+  userId    String
+  courseId  String?
+  view      Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  course    Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Contact {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Event {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String
+  thumbnail String?
+  view      Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model HeroSlider {
+  id          String    @id @default(uuid())
+  title       String
+  isShowTitle Boolean   @default(false)
+  image       String
+  isPublished Boolean   @default(false)
+  link        String
+  isBlank     Boolean   @default(false)
+  position    Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  badge       String?
+  openDate    DateTime?
+  teacherName String?
+}
+
+model SiteSetting {
+  id Int @id
+
+  // 사이트 기본정보
+  siteTitle       String?
+  siteDescription String?
+  favicon         String?
+  openGraphImage  String?
+
+  // 푸터 정보
+  businessName String?
+  businessInfo String?
+
+  gtmId String?
+
+  // 소셜 링크
+  contactLink      String?
+  youtubeLink      String?
+  instagramLink    String?
+  naverCafeLink    String?
+  teacherApplyLink String?
+  communityLink    String?
+  recruitmentLink  String?
+
+  // 정책 정보
+  courseRefundPolicy String?
+  ebookRefundPolicy  String?
+  marketingPolicy    String?
+
+  // 사업자정보
+  companyName     String?
+  ceoName         String?
+  businessNumber  String?
+  businessAddress String?
+  branchNumber    String?
+  businessType    String?
+  businessItem    String?
+  managerEmail    String?
+  managerName     String?
+  managerPhone    String?
+
+  // 입금 계좌 정보
+  bankName          String?
+  bankCode          String?
+  bankAccountNumber String?
+  bankHolderName    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Terms {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Post {
+  id           Int      @id @default(autoincrement())
+  title        String
+  content      String
+  thumbnail    String?
+  view         Int      @default(0)
+  externalLink String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Ebook {
+  id                String          @id @default(uuid())
+  title             String
+  description       String?
+  thumbnail         String?
+  fileUrl           String?
+  originalPrice     Int?
+  discountedPrice   Int?
+  showInInstallment Boolean         @default(false)
+  isPublished       Boolean         @default(false)
+  isFocusMode       Boolean         @default(false)
+  isUpcoming        Boolean         @default(false)
+  endDate           DateTime?
+  categoryId        String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  isTaxFree         Boolean         @default(false)
+  detailImages      DetailImage[]
+  category          Category?       @relation(fields: [categoryId], references: [id])
+  purchases         EbookPurchase[]
+  tossCustomers     TossCustomer[]
+  productBadge      ProductBadge[]  @relation("EbookToProductBadge")
+  orderItems        OrderItem[]
+}
+
+model EbookPurchase {
+  id             String    @id @default(uuid())
+  userId         String
+  ebookId        String
+  purchasePrice  Int
+  downloadCount  Int       @default(0)
+  lastDownloadAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  ebook          Ebook     @relation(fields: [ebookId], references: [id], onDelete: Cascade)
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, ebookId])
+}
+
+model UserBillingInfo {
+  id            String      @id @default(uuid())
+  userId        String      @unique
+  billingType   BillingType @default(CASH_RECEIPT)
+  depositorName String
+  note          String?
+
+  // 현금영수증
+  cashReceiptType CashReceiptType?
+  receiptNumber   String?
+
+  // 세금계산서
+  businessNumber  String?
+  companyName     String?
+  ceoName         String?
+  businessAddress String?
+  businessType    String?
+  businessItem    String?
+  contactName     String?
+  contactPhone    String?
+  contactEmail    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Order {
+  id          String      @id @default(uuid())
+  orderName   String
+  orderNumber String
+  type        OrderType   @default(BULK_PAYMENT)
+  status      OrderStatus @default(PENDING)
+
+  amount          Int
+  remainingAmount Int
+  paidAmount      Int
+
+  originalPrice   Int
+  discountedPrice Int?
+
+  usedCoupon Json? // { id: string, type: "PERCENTAGE" | "FIXED", amount: number }
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  userId     String? // profileId 대신 userId 사용
+  user       User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  payments   Payment[]
+  orderItems OrderItem[]
+}
+
+model OrderItem {
+  id              String          @id @default(uuid())
+  productCategory ProductCategory @default(COURSE)
+  productId       String
+  productTitle    String
+  productOptionId String?
+  productOption   Json?
+
+  quantity        Int  @default(1)
+  originalPrice   Int
+  discountedPrice Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  orderId  String
+  order    Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  courseId String?
+  course   Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  ebookId  String?
+  ebook    Ebook?  @relation(fields: [ebookId], references: [id], onDelete: SetNull)
+}
+
+model Payment {
+  id             String  @id @default(uuid())
+  tossPaymentKey String? @unique
+  mId            String?
+  tossSecretKey  String?
+
+  amount              Int
+  isTaxFree           Boolean @default(false)
+  fee                 Int
+  isPartialCancelable Boolean @default(false)
+
+  paymentMethod    PaymentMethod @default(CARD)
+  paymentStatus    PaymentStatus @default(READY)
+  cancelAmount     Int?
+  cancelReason     String?
+  refundableAmount Int?
+  canceledAt       DateTime?
+  receiptUrl       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  orderId              String
+  order                Order                @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  billingSnapshotId    String?              @unique
+  billingSnapshot      BillingSnapshot?     @relation(fields: [billingSnapshotId], references: [id], onDelete: SetNull)
+  transactions         Transaction[]
+  taxInvoiceHistories  TaxInvoiceHistory[]
+  cashReceiptHistories CashReceiptHistory[]
+  virtualAccount       VirtualAccount?
+  paymentCancels       PaymentCancel[]
+}
+
+model PaymentCancel {
+  id               String   @id @default(uuid())
+  cancelAmount     Int
+  cancelReason     String
+  taxFreeAmount    Int
+  refundableAmount Int
+  cancelStatus     String   @default("DONE")
+  canceledAt       DateTime @default(now())
+  paymentId        String
+  payment          Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+}
+
+model BillingSnapshot {
+  id String @id @default(uuid())
+
+  // 공통
+  billingType   BillingType @default(CASH_RECEIPT)
+  depositorName String // 예금주명
+  note          String? // 비고 (optional)
+
+  // 현금영수증용 필드
+  cashReceiptType CashReceiptType?
+  receiptNumber   String? // 휴대폰번호 또는 사업자번호
+
+  // 세금계산서용 필드
+  businessNumber  String?
+  companyName     String?
+  ceoName         String?
+  businessAddress String?
+  businessType    String?
+  businessItem    String?
+  contactName     String?
+  contactPhone    String?
+  contactEmail    String?
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  payment Payment?
+}
+
+model Transaction {
+  id String @id @default(uuid())
+
+  mId         String?
+  orderId     String
+  method      PaymentMethod
+  status      PaymentStatus
+  customerKey String
+  currency    String        @default("KRW")
+  amount      Int
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  userId    String?
+  user      User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  paymentId String
+  payment   Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+}
+
+model TaxInvoiceHistory {
+  id            String           @id @default(uuid())
+  issuanceKey   String
+  status        TaxInvoiceStatus
+  amount        Int
+  taxInvoiceUrl String?
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  paymentId String
+  payment   Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+}
+
+model CashReceiptHistory {
+  id          String            @id @default(uuid())
+  receiptKey  String
+  status      CashReceiptStatus
+  amount      Int
+  type        String
+  issueNumber String
+  receiptUrl  String
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  paymentId String
+  payment   Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+}
+
+model VirtualAccount {
+  id            String   @id @default(uuid())
+  accountNumber String
+  bankCode      String
+  customerName  String
+  dueDate       DateTime
+  refundStatus  String   @default("NONE")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  refundReceiveAccount RefundReceiveAccount?
+  paymentId            String                @unique
+  payment              Payment               @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  tossCustomerId       String?               @unique
+  tossCustomer         TossCustomer?         @relation(fields: [tossCustomerId], references: [id])
+}
+
+model RefundReceiveAccount {
+  id               String         @id @default(uuid())
+  bankCode         String
+  accountNumber    String
+  holderName       String
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  virtualAccountId String         @unique
+  virtualAccount   VirtualAccount @relation(fields: [virtualAccountId], references: [id], onDelete: Cascade)
+}
+
+enum ProductType {
+  SIMPLE
+  OPTION
+}
+
+enum ProductCategory {
+  COURSE
+  EBOOK
+}
+
+enum CategoryType {
+  COURSE
+  EBOOK
+  TEACHER
+  FAQ
+  NOTICE
+  FREE_COURSE
+}
+
+enum BillingType {
+  CASH_RECEIPT
+  TAX_INVOICE
+}
+
+enum CashReceiptType {
+  INCOME_DEDUCTION
+  PROOF_OF_EXPENSE
+}
+
+enum OrderType {
+  BULK_PAYMENT
+  SPLIT_PAYMENT
+}
+
+enum OrderStatus {
+  PENDING
+  IN_PARTIAL_PROGRESS
+  PAID
+  PARTIAL_REFUNDED
+  REFUNDED
+  REFUND_REQUESTED
+  REFUND_FAILED
+  CANCELED
+  FAILED
+}
+
+enum PaymentMethod {
+  CARD
+  TRANSFER
+  VIRTUAL_ACCOUNT
+  DIRECT_DEPOSIT
+  EASY_PAY
+}
+
+enum PaymentStatus {
+  READY
+  WAITING_FOR_DEPOSIT
+  WAITING_FOR_DIRECT_DEPOSIT
+  DONE
+  CANCELED
+  PARTIAL_CANCELED
+  FAILED
+}
+
+enum CashReceiptStatus {
+  ISSUED
+  CANCELED
+  PARTIAL_CANCELED
+}
+
+enum TaxInvoiceStatus {
+  ISSUANCE_REQUESTED
+  ISSUED
+  CANCEL_REQUESTED
+  CANCELED
+}
