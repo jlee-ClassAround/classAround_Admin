@@ -1,8 +1,7 @@
 'use server';
 
-import { Prisma } from '@/generated/ivy';
 import { ivyDb } from '@/lib/ivyDb';
-
+import { Prisma } from '@/generated/ivy';
 import { DateRange } from 'react-day-picker';
 
 export async function getPaymentStats({

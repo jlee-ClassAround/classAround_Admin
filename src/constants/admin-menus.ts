@@ -100,10 +100,10 @@ export const baseAdminMenus: AdminMenu[] = [
     {
         label: '결제관리',
         icon: ShoppingCart,
-        href: '/orders',
+        href: '/payments',
         subMenus: [
-            { label: '결제 내역', href: '/toss-customers' },
-            { label: '강의별 결제내역', href: '/lecture-payments' },
+            { label: '결제 내역', href: '/payments/history' },
+            // { label: '강의별 결제내역', href: '/lecture-payments' },
         ],
     },
     {
@@ -112,7 +112,7 @@ export const baseAdminMenus: AdminMenu[] = [
         href: '/users',
         subMenus: [
             { label: '전체 사용자', href: '/users/all' },
-            { label: '관리자 목록', href: '/userss', onlySuperAdmin: true },
+            // { label: '관리자 목록', href: '/users', onlySuperAdmin: true },
         ],
     },
     {
