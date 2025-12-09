@@ -1,43 +1,29 @@
 // app/ivy/admin/page.tsx
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getDashboardStats, getLatestOrders } from '@/actions/dashboard/get-stats';
+
 import { DashboardStats } from '@/components/dashboard-stats';
-import { DashboardChart } from '@/components/dashboard-chart';
+import { DashboardChart } from '@/components/ui/ivy/dashboard-chart';
 import { DashboardLatestOrders } from '@/components/dashboard-latest-orders';
+import getDashboardStats from './_actions/dashboard/get-dashboard-stats';
 
 export default async function IvyAdminDashboard() {
-    const brand = 'ivy';
-
-    const [statsResult, ordersResult] = await Promise.all([
-        getDashboardStats(brand),
-        getLatestOrders(brand, 5),
-    ]);
-
-    const stats = statsResult.data ?? {
-        totalUsers: 0,
-        todayUsers: 0,
-        totalRevenue: 0,
-        totalOrders: 0,
-    };
-
-    const orders = ordersResult.data ?? [];
+    const { orders, totalUsers, todayUsers, totalRevenue, latestOrders } =
+        await getDashboardStats();
 
     return (
-        <div className="space-y-8 p-8">
-            <h1 className="text-3xl font-bold">아이비 대시보드</h1>
-            {/* 에러 메시지 표시 */}
-            {!statsResult.success && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-                    {statsResult.error}
-                </div>
-            )}
+        <div className="space-y-8">
+            <h1 className="text-3xl font-bold">대시보드</h1>
+
+            {/* 통계 카드 */}
             <DashboardStats
-                totalUsers={stats.totalUsers}
-                todayUsers={stats.todayUsers}
-                totalRevenue={stats.totalRevenue}
+                totalUsers={totalUsers}
+                todayUsers={todayUsers}
+                totalRevenue={totalRevenue}
             />
+
             <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-                <Card>
+                {/* 차트 */}
+                <Card className="col-span-1">
                     <CardHeader>
                         <CardTitle>매출 현황</CardTitle>
                     </CardHeader>
@@ -46,12 +32,13 @@ export default async function IvyAdminDashboard() {
                     </CardContent>
                 </Card>
 
-                <Card>
+                {/* 최근 주문 */}
+                <Card className="col-span-1">
                     <CardHeader>
                         <CardTitle>최근 주문</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <DashboardLatestOrders orders={orders} />
+                        <DashboardLatestOrders orders={latestOrders} />
                     </CardContent>
                 </Card>
             </div>

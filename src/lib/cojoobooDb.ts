@@ -1,11 +1,11 @@
 import 'server-only';
 
-import { PrismaClient } from '@/generated/cojooboo'; // ← cojooboo 출력 경로
+import { PrismaClient as CojoobooPrisma } from '@/generated/cojooboo';
 
 declare global {
-    var prisma: PrismaClient | undefined;
+    var cojoobooPrisma: CojoobooPrisma | undefined;
 }
 
-export const cojoobooDb = globalThis.prisma || new PrismaClient();
+export const cojoobooDb = globalThis.cojoobooPrisma ?? new CojoobooPrisma();
 
-if (process.env.NODE_ENV !== 'production') globalThis.prisma = cojoobooDb;
+if (process.env.NODE_ENV !== 'production') globalThis.cojoobooPrisma = cojoobooDb;

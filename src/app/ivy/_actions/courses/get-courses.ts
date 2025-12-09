@@ -1,0 +1,56 @@
+'use server';
+
+import { ivyDb } from '@/lib/ivyDb';
+import { unstable_cache as nextCache } from 'next/cache';
+
+interface Props {
+    categoryId?: string;
+    currentPage?: number;
+    pageSize?: number;
+}
+
+export async function getCourses({ categoryId, currentPage = 1, pageSize = 12 }: Props) {
+    try {
+        const courses = await ivyDb.course.findMany({
+            where: {
+                isPublished: true,
+                isHidden: false,
+                categoryId,
+            },
+            include: {
+                teachers: true,
+                category: true,
+                productBadge: true,
+            },
+            orderBy: {
+                createdAt: 'desc',
+            },
+            take: pageSize,
+            skip: (currentPage - 1) * pageSize,
+        });
+        const totalCount = await ivyDb.course.count({
+            where: {
+                isPublished: true,
+                isHidden: false,
+                categoryId,
+            },
+        });
+
+        return { courses, totalCount };
+    } catch {
+        return { courses: [], totalCount: 0 };
+    }
+}
+
+export async function getCachedCourses(props: Props) {
+    const cache = nextCache(
+        getCourses,
+        [`${props.categoryId ? `courses-${props.categoryId}` : 'courses'}`],
+        {
+            tags: [`${props.categoryId ? `courses-${props.categoryId}` : 'courses'}`, 'courses'],
+            revalidate: 60 * 60 * 24,
+        }
+    );
+
+    return cache(props);
+}
