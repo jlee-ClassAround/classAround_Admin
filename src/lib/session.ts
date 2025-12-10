@@ -7,6 +7,7 @@ export interface SessionProps {
     id?: string;
     userId?: string;
     roleId?: string;
+    username?: string;
 }
 
 export async function getSession() {

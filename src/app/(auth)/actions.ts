@@ -48,6 +48,7 @@ export async function loginAction({ userId, password }: LoginPayload) {
     session.id = user.id;
     session.userId = user.userId ?? '';
     session.roleId = user.roleId;
+    session.username = user.username ?? '';
     await session.save();
 
     return { success: true };

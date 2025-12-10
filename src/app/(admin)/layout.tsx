@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import './ivy_globals.css';
+
 import { cn } from '@/lib/utils';
 
 import { SidebarProvider } from '@/components/ui/sidebar';
