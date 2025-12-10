@@ -10,8 +10,11 @@ import {
 // import { getIsSuperAdmin } from '@/utils/auth/is-super-admin';
 import { AdminFooterMenu } from './admin-footer-menu';
 import { AdminRoutes } from './admin-routes';
+import { getSession } from '@/lib/session';
 
 export async function AdminSidebar() {
+    const session = await getSession();
+    const roleId = session?.roleId;
     return (
         <Sidebar collapsible="icon" className="light bg-background z-20">
             <SidebarHeader>
@@ -19,7 +22,7 @@ export async function AdminSidebar() {
             </SidebarHeader>
             <SidebarSeparator />
             <SidebarContent className="gap-0">
-                <AdminRoutes />
+                <AdminRoutes currentRole={roleId} />
             </SidebarContent>
             <SidebarSeparator />
             <SidebarFooter>

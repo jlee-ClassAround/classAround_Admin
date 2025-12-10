@@ -1,12 +1,13 @@
 'use server';
 
-import { db } from '@/lib/cojoobooDb';
+import { caDb } from '@/lib/caDb';
+
 import { getSession } from '@/lib/session';
 
 export async function getIsSuperAdmin() {
     try {
         const session = await getSession();
-        const user = await db.user.findUnique({
+        const user = await caDb.user.findUnique({
             where: {
                 id: session.id,
             },
@@ -15,7 +16,7 @@ export async function getIsSuperAdmin() {
             },
         });
 
-        return user?.roleId === 'super-admin';
+        return user?.roleId === 'superadmin';
     } catch {
         return false;
     }

@@ -17,6 +17,7 @@ import {
     HelpCircle,
     ImagesIcon,
     Settings,
+    UsersRound,
 } from 'lucide-react';
 
 /* ---------- 타입 ---------- */
@@ -38,6 +39,7 @@ export interface AdminMenuGroup {
     prefix: string;
     icon: ComponentType<{ className?: string }>;
     menus: AdminMenu[];
+    onlySuperAdmin?: boolean;
 }
 
 /* ---------- 기본 메뉴 ---------- */
@@ -184,5 +186,19 @@ export const adminMenuGroups: AdminMenuGroup[] = [
         prefix: 'ivy',
         icon: Shapes,
         menus: [addDashboard('ivy'), ...withPrefix('ivy', baseAdminMenus)],
+    },
+    {
+        title: '어드민 관리',
+        prefix: 'admin',
+        icon: UsersRound,
+        onlySuperAdmin: true,
+        menus: [
+            {
+                label: '어드민 목록',
+                href: '/admin/users',
+                icon: UsersRound,
+                subMenus: [], // 필수이므로 빈 배열로 제공
+            },
+        ],
     },
 ];

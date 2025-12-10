@@ -18,12 +18,17 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { adminMenuGroups } from '@/constants/admin-menus';
 
-export function AdminRoutes() {
+export function AdminRoutes({ currentRole }: { currentRole?: string }) {
     const pathname = usePathname();
-
+    const visibleMenuGroups = adminMenuGroups.filter((group) => {
+        if (group.onlySuperAdmin && currentRole !== 'superadmin') {
+            return false;
+        }
+        return true;
+    });
     return (
         <>
-            {adminMenuGroups.map((group) => {
+            {visibleMenuGroups.map((group) => {
                 const isGroupActive = pathname.includes(`/${group.prefix}`);
 
                 return (

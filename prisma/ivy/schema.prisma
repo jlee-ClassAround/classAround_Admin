@@ -10,155 +10,117 @@ datasource db {
 }
 
 model User {
-  id       String  @id @default(uuid())
-  username String?
-  nickname String?
-  email    String? @unique
-  password String?
-  phone    String? @unique
-
+  id              String          @id @default(uuid())
+  username        String?
+  nickname        String?
+  email           String?         @unique
+  password        String?
+  phone           String?         @unique
   avatar          String?
-  kakaoId         String? @unique
-  kajabiContactId String? @unique
-
-  optedIn Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  roleId String?
-  Role   Role?   @relation(fields: [roleId], references: [id])
-
-  userProgresses UserProgress[]
-  enrollments    Enrollment[]
-  applyCourses   ApplyCourse[]
-  tossCustomers  TossCustomer[]
-  userCoupons    UserCoupon[]
-  revenues       Revenue[]
-  revieww        Review[]
-  contacts       Contact[]
-  userTags       UserTag[]
-  ebookPurchases EbookPurchase[]
+  kakaoId         String?         @unique
+  kajabiContactId String?         @unique
+  optedIn         Boolean         @default(false)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  roleId          String?
+  applyCourses    ApplyCourse[]
+  contacts        Contact[]
+  ebookPurchases  EbookPurchase[]
+  enrollments     Enrollment[]
+  revenues        Revenue[]
+  revieww         Review[]
+  tossCustomers   TossCustomer[]
+  Role            Role?           @relation(fields: [roleId], references: [id])
+  userCoupons     UserCoupon[]
+  userProgresses  UserProgress[]
+  userTags        UserTag[]
 }
 
 model Course {
-  id String @id @default(uuid())
-
-  title       String  @default("")
-  description String?
-
-  productType ProductType @default(SIMPLE)
-
+  id                String         @id @default(uuid())
+  title             String         @default("")
+  description       String?
+  productType       ProductType    @default(SIMPLE)
   originalPrice     Int?
   discountedPrice   Int?
-  showInInstallment Boolean @default(false)
-  isTaxFree         Boolean @default(false)
-
-  thumbnail   String?
-  isPublished Boolean @default(false)
-  isHidden    Boolean @default(false)
-
-  isFocusMode Boolean @default(false)
-
-  isUpcoming Boolean   @default(false)
-  endDate    DateTime?
-
-  maxPurchaseCount Int?
-  accessDuration   Int?
-
+  showInInstallment Boolean        @default(false)
+  isTaxFree         Boolean        @default(false)
+  thumbnail         String?
+  isPublished       Boolean        @default(false)
+  isHidden          Boolean        @default(false)
+  isFocusMode       Boolean        @default(false)
+  isUpcoming        Boolean        @default(false)
+  endDate           DateTime?
+  maxPurchaseCount  Int?
+  accessDuration    Int?
   kakaoRoomLink     String?
   kakaoRoomPassword String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  categoryId String?
-  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-
-  teachers Teacher[]
-
-  detailImages DetailImage[]
-  chapters     Chapter[]
-  enrollments  Enrollment[]
-
-  reviews Review[]
-
-  options       CourseOption[]
-  tossCustomers TossCustomer[]
-  productBadge  ProductBadge[]
-  coupons       Coupon[]
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  categoryId        String?
+  chapters          Chapter[]
+  category          Category?      @relation(fields: [categoryId], references: [id])
+  options           CourseOption[]
+  detailImages      DetailImage[]
+  enrollments       Enrollment[]
+  reviews           Review[]
+  tossCustomers     TossCustomer[]
+  coupons           Coupon[]       @relation("CouponToCourse")
+  productBadge      ProductBadge[] @relation("CourseToProductBadge")
+  teachers          Teacher[]      @relation("CourseToTeacher")
 }
 
 model FreeCourse {
-  id String @id @default(uuid())
-
-  title       String  @default("")
-  description String?
-
-  thumbnail   String?
-  isPublished Boolean @default(false)
-  isHidden    Boolean @default(false)
-
+  id                String         @id @default(uuid())
+  title             String         @default("")
+  description       String?
+  thumbnail         String?
+  isPublished       Boolean        @default(false)
+  isHidden          Boolean        @default(false)
   kakaoRoomLink     String?
   kakaoRoomPassword String?
   kakaoTemplateId   String?
   location          String?
   webhookUrl        String?
   kajabiTagId       String?
-
-  isUpcoming Boolean   @default(false)
-  endDate    DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  categoryId String?
-  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-
-  productBadge ProductBadge[]
-  teachers     Teacher[]
-  detailImages DetailImage[]
-  applyCourses ApplyCourse[]
+  isUpcoming        Boolean        @default(false)
+  endDate           DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  categoryId        String?
+  applyCourses      ApplyCourse[]
+  detailImages      DetailImage[]
+  category          Category?      @relation(fields: [categoryId], references: [id])
+  productBadge      ProductBadge[] @relation("FreeCourseToProductBadge")
+  teachers          Teacher[]      @relation("FreeCourseToTeacher")
 }
 
 model CourseOption {
-  id String @id @default(cuid())
-
-  courseId String
-  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  name String
-
+  id               String       @id @default(cuid())
+  courseId         String
+  name             String
   originalPrice    Int
   discountedPrice  Int?
-  isTaxFree        Boolean @default(false)
+  isTaxFree        Boolean      @default(false)
   maxPurchaseCount Int?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  enrollments Enrollment[]
-}
-
-enum ProductType {
-  SIMPLE
-  OPTION
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  course           Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  enrollments      Enrollment[]
 }
 
 model DetailImage {
-  id       String @id @default(uuid())
-  name     String
-  imageUrl String
-  position Int
-
+  id           String      @id @default(uuid())
+  name         String
+  imageUrl     String
+  position     Int
   courseId     String?
-  course       Course?     @relation(fields: [courseId], references: [id], onDelete: Cascade)
   ebookId      String?
-  ebook        Ebook?      @relation(fields: [ebookId], references: [id], onDelete: Cascade)
   freeCourseId String?
+  uploadedAt   DateTime    @default(now())
+  course       Course?     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  ebook        Ebook?      @relation(fields: [ebookId], references: [id], onDelete: Cascade)
   freeCourse   FreeCourse? @relation(fields: [freeCourseId], references: [id], onDelete: Cascade)
-
-  uploadedAt DateTime @default(now())
 }
 
 model Role {
@@ -166,235 +128,177 @@ model Role {
   users User[]
 }
 
-enum CategoryType {
-  COURSE
-  FREE_COURSE
-  EBOOK
-  TEACHER
-  FAQ
-  NOTICE
-}
-
 model Category {
   id          String       @id @default(uuid())
   name        String
   description String?
   type        CategoryType
-
   courses     Course[]
-  teachers    Teacher[]
   ebooks      Ebook[]
-  notices     Notice[]
   faqs        Faq[]
   freeCourses FreeCourse[]
+  notices     Notice[]
+  teachers    Teacher[]
 
   @@unique([name, type])
 }
 
 model Chapter {
-  id String @id @default(uuid())
-
-  title       String  @default("새로운 챕터")
+  id          String   @id @default(uuid())
+  title       String   @default("새로운 챕터")
   description String?
   position    Int
-
-  isPublished Boolean @default(false)
-
-  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  courseId String
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  lessons Lesson[]
+  isPublished Boolean  @default(false)
+  courseId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons     Lesson[]
 }
 
 model Lesson {
-  id String @id @default(uuid())
-
-  title       String  @default("새로운 강의")
-  description String?
-  position    Int
-
-  videoType String  @default("vimeo")
-  videoUrl  String?
-
-  isPublished Boolean @default(false)
-  isFree      Boolean @default(false)
-
-  chapterId String
-  chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  userProgresses UserProgress[]
-  MuxData        MuxData?
+  id             String         @id @default(uuid())
+  title          String         @default("새로운 강의")
+  description    String?
+  position       Int
+  videoType      String         @default("vimeo")
+  videoUrl       String?
+  isPublished    Boolean        @default(false)
+  isFree         Boolean        @default(false)
+  chapterId      String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
   attachments    Attachment[]
+  chapter        Chapter        @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  MuxData        MuxData?
+  userProgresses UserProgress[]
 }
 
 model UserProgress {
-  id String @id @default(uuid())
-
-  isCompleted Boolean @default(false)
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  lessonId String
-  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(uuid())
+  isCompleted Boolean  @default(false)
+  userId      String
+  lessonId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, lessonId])
 }
 
 model Attachment {
-  id String @id @default(cuid())
-
-  name String @default("new file")
-  url  String
-
-  lessonId String
-  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-
+  id        String   @id @default(cuid())
+  name      String   @default("new file")
+  url       String
+  lessonId  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 }
 
 model Tag {
-  id   String @id @default(cuid())
-  name String @unique
-
+  id          String    @id @default(cuid())
+  name        String    @unique
   description String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  userTags UserTag[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  userTags    UserTag[]
 }
 
 model UserTag {
-  id String @id @default(cuid())
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  tagId String
-  tag   Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
-
+  id        String   @id @default(cuid())
+  userId    String
+  tagId     String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  tag       Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, tagId])
 }
 
 model ProductBadge {
-  id          String  @id @default(cuid())
+  id          String       @id @default(cuid())
   name        String
   description String?
   color       String?
   textColor   String?
-
-  courses     Course[]
-  ebooks      Ebook[]
-  freeCourses FreeCourse[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  courses     Course[]     @relation("CourseToProductBadge")
+  ebooks      Ebook[]      @relation("EbookToProductBadge")
+  freeCourses FreeCourse[] @relation("FreeCourseToProductBadge")
 }
 
 model MuxData {
   id         String  @id @default(uuid())
   assetId    String
   playbackId String?
-
-  lessonId String @unique
-  lesson   Lesson @relation(fields: [lessonId], references: [id])
+  lessonId   String  @unique
+  lesson     Lesson  @relation(fields: [lessonId], references: [id])
 }
 
 model Enrollment {
-  id String @id @default(uuid())
-
-  startDate   DateTime  @default(now())
-  endDate     DateTime?
-  isActive    Boolean   @default(true)
-  enrollCount Int       @default(1)
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  courseId String
-  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
+  id             String        @id @default(uuid())
+  startDate      DateTime      @default(now())
+  endDate        DateTime?
+  isActive       Boolean       @default(true)
+  enrollCount    Int           @default(1)
+  userId         String
+  courseId       String
   courseOptionId String?
-  courseOption   CourseOption? @relation(fields: [courseOptionId], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  course         Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseOption   CourseOption? @relation(fields: [courseOptionId], references: [id])
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, courseId])
 }
 
 model ApplyCourse {
-  id String @id @default(uuid())
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  id           String     @id @default(uuid())
+  userId       String
   freeCourseId String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
   freeCourse   FreeCourse @relation(fields: [freeCourseId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, freeCourseId])
 }
 
-// enum PaymentStatus {
-//   COMPLETED
-//   CANCELLED
-//   REFUNDED
-//   PARTIAL_REFUNDED
-// }
-
 model TossCustomer {
-  id String @id @default(uuid())
-
-  orderId    String @unique
-  paymentKey String @unique
-  orderName  String
-
-  originalPrice Int
-  discountPrice Int?
-  couponType    String?
-  couponAmount  Int?
-  finalPrice    Int
-  isTaxFree     Boolean @default(false)
-
-  productType     String // "COURSE" | "EBOOK"
-  productId       String
-  productTitle    String
-  productOptionId String?
-  productOption   Json?
-
+  id               String    @id @default(uuid())
+  orderId          String    @unique
+  paymentKey       String    @unique
+  orderName        String
+  originalPrice    Int
+  discountPrice    Int?
+  couponType       String?
+  couponAmount     Int?
+  finalPrice       Int
+  isTaxFree        Boolean   @default(false)
+  productType      String
+  productId        String
+  productTitle     String
+  productOptionId  String?
+  productOption    Json?
   paymentStatus    String    @default("COMPLETED")
   cancelAmount     Int?
   cancelReason     String?
   refundableAmount Int?
   canceledAt       DateTime?
   receiptUrl       String?
-
-  userId   String?
-  user     User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
-  courseId String?
-  course   Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
-  ebookId  String?
-  ebook    Ebook?  @relation(fields: [ebookId], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  userId           String?
+  courseId         String?
+  ebookId          String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  course           Course?   @relation(fields: [courseId], references: [id])
+  ebook            Ebook?    @relation(fields: [ebookId], references: [id])
+  user             User?     @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([courseId])
@@ -405,158 +309,122 @@ model TossCustomer {
 }
 
 model Teacher {
-  id      String  @id @default(uuid())
-  name    String
-  info    String?
-  profile String?
-
-  isPublished Boolean @default(false)
-
-  categoryId String?
-  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-
-  courses     Course[]
-  freeCourses FreeCourse[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String       @id @default(uuid())
+  name        String
+  info        String?
+  profile     String?
+  isPublished Boolean      @default(false)
+  categoryId  String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  category    Category?    @relation(fields: [categoryId], references: [id])
+  courses     Course[]     @relation("CourseToTeacher")
+  freeCourses FreeCourse[] @relation("FreeCourseToTeacher")
 }
 
 model Coupon {
-  id          String  @id @default(uuid())
-  code        String  @unique
-  name        String
-  description String?
-
+  id             String       @id @default(uuid())
+  code           String       @unique
+  name           String
+  description    String?
   discountType   String
   discountAmount Int
   expiryDate     DateTime
-
-  usageLimit Int?
-  usedCount  Int  @default(0)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  userCoupons UserCoupon[]
-  courses     Course[]
+  usageLimit     Int?
+  usedCount      Int          @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  userCoupons    UserCoupon[]
+  courses        Course[]     @relation("CouponToCourse")
 }
 
 model UserCoupon {
-  id String @id @default(uuid())
-
-  userId   String
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  couponId String
-  coupon   Coupon    @relation(fields: [couponId], references: [id], onDelete: Cascade)
-  isUsed   Boolean   @default(false)
-  usedAt   DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        String    @id @default(uuid())
+  userId    String
+  couponId  String
+  isUsed    Boolean   @default(false)
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  coupon    Coupon    @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, couponId])
 }
 
 model Revenue {
-  id Int @id @default(autoincrement())
-
-  title   String
-  content String
-
-  amount   Int?
-  photo    String?
-  videoUrl String?
-
-  view Int @default(0)
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String
+  amount    Int?
+  photo     String?
+  videoUrl  String?
+  view      Int      @default(0)
+  userId    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Notice {
-  id Int @id @default(autoincrement())
-
-  title   String
-  content String
-
-  view        Int     @default(0)
-  isPublished Boolean @default(false)
-
-  categoryId String?
-  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          Int       @id @default(autoincrement())
+  title       String
+  content     String
+  view        Int       @default(0)
+  isPublished Boolean   @default(false)
+  categoryId  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  category    Category? @relation(fields: [categoryId], references: [id])
 }
 
 model Faq {
-  id Int @id @default(autoincrement())
-
+  id          Int       @id @default(autoincrement())
   title       String
   content     String
-  isPublished Boolean @default(false)
-
-  categoryId String?
-  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  isPublished Boolean   @default(false)
+  categoryId  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  category    Category? @relation(fields: [categoryId], references: [id])
 }
 
 model Review {
-  id Int @id @default(autoincrement())
-
-  title   String
-  content String
-
-  rating Float @default(5)
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  courseId String?
-  course   Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  view Int @default(0)
-
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String
+  rating    Float    @default(5)
+  userId    String
+  courseId  String?
+  view      Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  course    Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Contact {
-  id Int @id @default(autoincrement())
-
-  title   String
-  content String
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String
+  userId    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Event {
-  id Int @id @default(autoincrement())
-
-  title   String
-  content String
-
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String
   thumbnail String?
-
-  view Int @default(0)
-
+  view      Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model HeroSlider {
-  id String @id @default(uuid())
-
+  id          String    @id @default(uuid())
   title       String
   isShowTitle Boolean   @default(false)
   teacherName String?
@@ -564,104 +432,99 @@ model HeroSlider {
   badge       String?
   image       String
   isPublished Boolean   @default(false)
-
-  link    String
-  isBlank Boolean @default(false)
-
-  position Int @default(0)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  link        String
+  isBlank     Boolean   @default(false)
+  position    Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model SiteSetting {
-  id Int @id
-
-  businessName String?
-  businessInfo String?
-
-  contactLink      String?
-  youtubeLink      String?
-  instagramLink    String?
-  naverCafeLink    String?
-  communityLink    String?
-  teacherApplyLink String?
-  recruitmentLink  String?
-
+  id                 Int      @id
+  businessName       String?
+  businessInfo       String?
+  contactLink        String?
+  youtubeLink        String?
+  instagramLink      String?
+  naverCafeLink      String?
+  communityLink      String?
+  teacherApplyLink   String?
   courseRefundPolicy String?
   ebookRefundPolicy  String?
   marketingPolicy    String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  recruitmentLink    String?
 }
 
 model Terms {
-  id Int @id @default(autoincrement())
-
-  title   String
-  content String
-
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Post {
-  id Int @id @default(autoincrement())
-
+  id           Int      @id @default(autoincrement())
   title        String
   content      String
   thumbnail    String?
-  view         Int     @default(0)
+  view         Int      @default(0)
   externalLink String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model Ebook {
-  id          String  @id @default(uuid())
-  title       String
-  description String?
-  thumbnail   String?
-  fileUrl     String?
-
+  id                String          @id @default(uuid())
+  title             String
+  description       String?
+  thumbnail         String?
+  fileUrl           String?
   originalPrice     Int?
   discountedPrice   Int?
-  showInInstallment Boolean   @default(false)
-  isPublished       Boolean   @default(false)
-  isFocusMode       Boolean   @default(false)
-  isUpcoming        Boolean   @default(false)
+  showInInstallment Boolean         @default(false)
+  isPublished       Boolean         @default(false)
+  isFocusMode       Boolean         @default(false)
+  isUpcoming        Boolean         @default(false)
   endDate           DateTime?
-  isTaxFree         Boolean   @default(false)
-
-  categoryId String?
-  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-
-  purchases    EbookPurchase[]
-  productBadge ProductBadge[]
-
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  detailImages  DetailImage[]
-  tossCustomers TossCustomer[]
+  isTaxFree         Boolean         @default(false)
+  categoryId        String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  detailImages      DetailImage[]
+  category          Category?       @relation(fields: [categoryId], references: [id])
+  purchases         EbookPurchase[]
+  tossCustomers     TossCustomer[]
+  productBadge      ProductBadge[]  @relation("EbookToProductBadge")
 }
 
 model EbookPurchase {
-  id String @id @default(uuid())
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  ebookId String
-  ebook   Ebook  @relation(fields: [ebookId], references: [id], onDelete: Cascade)
-
+  id             String    @id @default(uuid())
+  userId         String
+  ebookId        String
   purchasePrice  Int
   downloadCount  Int       @default(0)
   lastDownloadAt DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  ebook          Ebook     @relation(fields: [ebookId], references: [id], onDelete: Cascade)
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, ebookId])
+}
+
+enum ProductType {
+  SIMPLE
+  OPTION
+}
+
+enum CategoryType {
+  COURSE
+  FREE_COURSE
+  EBOOK
+  TEACHER
+  FAQ
+  NOTICE
 }

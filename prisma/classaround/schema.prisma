@@ -1,0 +1,31 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../src/generated/classaround"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("CLASSAROUND_DATABASE_URL")
+  directUrl = env("CLASSAROUND_DIRECT_URL")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model Role {
+  id   String @id
+  User User[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model User {
+  id        String    @id(map: "users_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String?   @unique
+  password  String
+  email     String?   @db.VarChar(255)
+  roleId    String    @default("admin") @db.VarChar(50)
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime? @db.Timestamptz(6)
+  username  String?
+  phone     String?
+  Role      Role      @relation(fields: [roleId], references: [id])
+}
