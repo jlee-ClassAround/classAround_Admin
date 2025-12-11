@@ -10,7 +10,7 @@ import {
 } from '@hello-pangea/dnd';
 import { Edit, GripVertical, Loader2, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { ChapterType, useCourseEditorStore } from '@/store/use-course-editor-store';
+import { ChapterType, useCourseEditorStore } from '@/store/cojooboo/use-course-editor-store';
 import { Button } from '@/components/ui/button';
 import {
     Select,
