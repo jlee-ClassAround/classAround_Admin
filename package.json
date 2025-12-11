@@ -10,7 +10,8 @@
         "db:sync": "yarn db:pull && yarn db:generate",
         "db:pull": "prisma db pull --schema=prisma/cojooboo/schema.prisma && prisma db pull --schema=prisma/ivy/schema.prisma && prisma db pull --schema=prisma/classaround/schema.prisma",
         "db:generate": "prisma generate --schema=prisma/cojooboo/schema.prisma && prisma generate --schema=prisma/ivy/schema.prisma && prisma generate --schema=prisma/classaround/schema.prisma",
-        "tc": "tsc --noEmit"
+        "tc": "tsc --noEmit",
+        "postinstall": "prisma generate --schema=prisma/cojooboo/schema.prisma && prisma generate --schema=prisma/ivy/schema.prisma && prisma generate --schema=prisma/classaround/schema.prisma"
     },
     "dependencies": {
         "@aws-sdk/client-ses": "^3.721.0",
