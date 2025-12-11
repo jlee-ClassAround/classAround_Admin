@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 
 import { cn } from '@/lib/utils';
+import './globals.css';
 
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AdminSidebar } from '@/components/sidebar/admin-sidebar';

@@ -1,5 +1,5 @@
 import 'server-only';
-import { PrismaClient as ClassAroundPrisma } from '@/generated/classaround'; // ← ivy 출력 경로
+import { PrismaClient as ClassAroundPrisma } from '@prisma/classaround-client';
 
 declare global {
     var caPrisma: ClassAroundPrisma | undefined;

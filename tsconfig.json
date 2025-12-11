@@ -18,7 +18,10 @@
             }
         ],
         "paths": {
-            "@/*": ["./src/*"]
+            "@/*": ["./src/*"],
+            "@prisma/cojooboo-client": ["./src/generated/cojooboo"],
+            "@prisma/ivy-client": ["./src/generated/ivy"],
+            "@prisma/classaround-client": ["./src/generated/classaround"]
         },
         "target": "ES2017"
     },

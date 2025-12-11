@@ -1,5 +1,5 @@
 import 'server-only';
-import { PrismaClient as IvyPrisma } from '@/generated/ivy'; // ← ivy 출력 경로
+import { PrismaClient as IvyPrisma } from '@prisma/ivy-client';
 
 declare global {
     var ivyPrisma: IvyPrisma | undefined;
