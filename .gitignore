@@ -43,6 +43,10 @@ next-env.d.ts
 
 
 # # prisma setting
-# src/generated/*
-# !src/generated/.gitkeep
+src/generated/cojooboo/*
+!src/generated/cojooboo/.gitkeep
+src/generated/ivy/*
+!src/generated/ivy/.gitkeep
+src/generated/classaround/*
+!src/generated/classaround/.gitkeep
 
