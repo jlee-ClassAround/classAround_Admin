@@ -18,17 +18,6 @@ const nextConfig = {
             '/**': ['./src/generated/**'],
         },
     },
-
-    webpack: (config, { isServer }) => {
-        if (isServer) {
-            config.externals.push({
-                '@prisma/classaround-client': 'commonjs @prisma/classaround-client',
-                '@prisma/cojooboo-client': 'commonjs @prisma/cojooboo-client',
-                '@prisma/ivy-client': 'commonjs @prisma/ivy-client',
-            });
-        }
-        return config;
-    },
 };
 
 export default nextConfig;
