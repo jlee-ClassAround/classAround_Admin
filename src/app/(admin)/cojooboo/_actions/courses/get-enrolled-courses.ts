@@ -1,7 +1,7 @@
 'use server';
 
 import { cojoobooDb } from '@/lib/cojoobooDb';
-import { Course } from '@prisma/client';
+import { Course } from '@/generated/cojooboo';
 import { getUserProgress } from '../lessons/get-user-progress';
 
 interface Props {

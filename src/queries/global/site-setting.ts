@@ -1,8 +1,8 @@
-import { db } from '@/lib/cojoobooDb';
+import { cojoobooDb } from '@/lib/cojoobooDb';
 import { unstable_cache as nextCache } from 'next/cache';
 
 export async function getSiteSetting() {
-    return await db.siteSetting.findUnique({
+    return await cojoobooDb.siteSetting.findUnique({
         where: {
             id: 1,
         },

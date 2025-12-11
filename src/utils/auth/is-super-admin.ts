@@ -1,7 +1,6 @@
 'use server';
 
 import { caDb } from '@/lib/caDb';
-
 import { getSession } from '@/lib/session';
 
 export async function getIsSuperAdmin() {

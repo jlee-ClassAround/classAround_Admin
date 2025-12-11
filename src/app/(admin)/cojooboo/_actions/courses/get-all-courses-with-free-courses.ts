@@ -1,7 +1,7 @@
 'use server';
 
 import { cojoobooDb } from '@/lib/cojoobooDb';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '@/generated/cojooboo';
 import { unstable_cache as nextCache } from 'next/cache';
 
 interface CountResult {

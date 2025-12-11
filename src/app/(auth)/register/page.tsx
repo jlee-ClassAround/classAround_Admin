@@ -1,7 +1,7 @@
 import { getUserById, updateUserRegisterAction } from './actions';
 import { redirect } from 'next/navigation';
 
-export default async function RegisterPage({ searchParams }: { searchParams: { id?: string } }) {
+export default async function RegisterPage({ searchParams }: any) {
     const id = searchParams.id;
 
     if (!id) {

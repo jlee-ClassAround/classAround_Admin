@@ -1,9 +1,9 @@
-import { getIsSuperAdmin } from '@/utils/auth/is-super-admin';
 import NotFound from '../../not-found';
 import { getAdminUsers } from './actions';
 import { Card } from '@/components/ui/card';
 import { AdminDataTable } from '@/components/admin-data-table';
 import { columns } from './columns';
+import { getIsSuperAdmin } from '@/utils/auth/is-super-admin';
 
 interface Props {
     searchParams: Promise<{
