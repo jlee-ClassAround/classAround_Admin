@@ -1,7 +1,7 @@
 'use server';
 
 import { ivyDb } from '@/lib/ivyDb';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '@/generated/ivy';
 import { unstable_cache as nextCache } from 'next/cache';
 
 interface CountResult {
