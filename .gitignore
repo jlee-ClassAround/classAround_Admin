@@ -42,7 +42,4 @@ next-env.d.ts
 
 
 
-# prisma setting
-# src/generated/*
-# !src/generated/.gitkeep
 
