@@ -18,6 +18,7 @@ import {
     ImagesIcon,
     Settings,
     UsersRound,
+    Banknote,
 } from 'lucide-react';
 
 /* ---------- 타입 ---------- */
@@ -186,6 +187,19 @@ export const adminMenuGroups: AdminMenuGroup[] = [
         prefix: 'ivy',
         icon: Shapes,
         menus: [addDashboard('ivy'), ...withPrefix('ivy', baseAdminMenus)],
+    },
+    {
+        title: '결산 관리',
+        prefix: 'rs',
+        icon: Banknote,
+        menus: [
+            {
+                label: 'RS 확인',
+                href: '/rs/checkout',
+                icon: UsersRound,
+                subMenus: [], // 필수이므로 빈 배열로 제공
+            },
+        ],
     },
     {
         title: '어드민 관리',
