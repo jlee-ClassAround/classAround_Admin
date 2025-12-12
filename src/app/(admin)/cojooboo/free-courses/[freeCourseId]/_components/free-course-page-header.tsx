@@ -46,6 +46,16 @@ export function FreeCoursePageHeader({ freeCourse }: Props) {
                             기본 설정
                         </Link>
                         <Link
+                            href={`/cojooboo/free-courses/${freeCourse.id}/tracking`}
+                            className={cn(
+                                'border-b-2 pb-1 border-transparent transition-colors text-gray-500',
+                                pathname === `/cojooboo/free-courses/${freeCourse.id}/tracking` &&
+                                    'border-primary text-black'
+                            )}
+                        >
+                            트래킹
+                        </Link>
+                        <Link
                             href={`/cojooboo/free-courses/${freeCourse.id}/apply`}
                             className={cn(
                                 'border-b-2 pb-1 border-transparent transition-colors text-gray-500',

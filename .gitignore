@@ -49,4 +49,6 @@ src/generated/ivy/*
 !src/generated/ivy/.gitkeep
 src/generated/classaround/*
 !src/generated/classaround/.gitkeep
+src/generated/mysql/*
+!src/generated/mysql/.gitkeep
 

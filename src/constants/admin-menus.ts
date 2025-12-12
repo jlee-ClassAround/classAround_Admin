@@ -176,7 +176,7 @@ function addDashboard(prefix: string): AdminMenu {
 /* ---------- 브랜드 메뉴 그룹 ---------- */
 export const adminMenuGroups: AdminMenuGroup[] = [
     {
-        title: '코주부 스쿨',
+        title: '코주부 클래스',
         prefix: 'cojooboo',
         icon: Bitcoin,
         menus: [addDashboard('cojooboo'), ...withPrefix('cojooboo', baseAdminMenus)],
