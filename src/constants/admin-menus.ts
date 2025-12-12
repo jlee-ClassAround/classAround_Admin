@@ -19,6 +19,7 @@ import {
     Settings,
     UsersRound,
     Banknote,
+    UserPlus,
 } from 'lucide-react';
 
 /* ---------- 타입 ---------- */
@@ -211,6 +212,12 @@ export const adminMenuGroups: AdminMenuGroup[] = [
                 label: '어드민 목록',
                 href: '/admin/users',
                 icon: UsersRound,
+                subMenus: [], // 필수이므로 빈 배열로 제공
+            },
+            {
+                label: '어드민 신청',
+                href: '/admin/pending',
+                icon: UserPlus,
                 subMenus: [], // 필수이므로 빈 배열로 제공
             },
         ],

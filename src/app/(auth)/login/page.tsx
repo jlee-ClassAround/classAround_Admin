@@ -57,15 +57,24 @@ export default function LoginPage() {
                         <Button type="submit" className="w-full text-base py-5">
                             로그인
                         </Button>
-
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            className="w-full text-sm text-blue-600 underline mt-2"
-                            onClick={() => router.push('/first')}
-                        >
-                            최초등록 하기
-                        </Button>
+                        <div className="flex gap-2 mt-2">
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                className="w-1/2 bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                onClick={() => router.push('/signup')}
+                            >
+                                가입하기
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                className="w-1/2 bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                onClick={() => router.push('/first')}
+                            >
+                                최초등록 하기
+                            </Button>
+                        </div>
                     </form>
                 </CardContent>
             </Card>
