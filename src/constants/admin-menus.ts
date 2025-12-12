@@ -20,6 +20,7 @@ import {
     UsersRound,
     Banknote,
     UserPlus,
+    Send,
 } from 'lucide-react';
 
 /* ---------- 타입 ---------- */
@@ -197,7 +198,7 @@ export const adminMenuGroups: AdminMenuGroup[] = [
             {
                 label: 'RS 확인',
                 href: '/rs/checkout',
-                icon: UsersRound,
+                icon: Send,
                 subMenus: [], // 필수이므로 빈 배열로 제공
             },
         ],
