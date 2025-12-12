@@ -71,7 +71,7 @@ export function CourseIdHeader({ course }: Props) {
             </div>
             <div className="flex items-center gap-x-2">
                 <Button variant="ghost" size="icon" asChild>
-                    <Link href={`/courses/${course.id}`}>
+                    <Link href={`${process.env.NEXT_PUBLIC_IVY_APP_URL}/courses/${course.id}`}>
                         <Eye className="size-4" />
                         <span className="sr-only">미리보기</span>
                     </Link>
