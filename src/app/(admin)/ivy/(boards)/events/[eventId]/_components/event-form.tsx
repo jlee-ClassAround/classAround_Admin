@@ -1,6 +1,6 @@
 'use client';
 
-import { FileDropzone } from '@/components/global/file-dropzone';
+import { FileDropzone } from '@/components/ivy/file-dropzone';
 import Tiptap from '@/components/tiptap/tiptap';
 import { Button } from '@/components/ui/button';
 import {

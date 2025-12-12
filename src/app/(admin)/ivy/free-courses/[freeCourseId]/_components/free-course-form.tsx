@@ -43,7 +43,7 @@ import { updateFreeCourse } from "../../actions";
 import { DetailImageUpload } from "./detail-image-upload";
 import { TeacherCombobox } from "./teacher-combobox";
 import { Badge } from "@/components/ui/badge";
-import { FileDropzone } from "@/components/global/file-dropzone";
+import { FileDropzone } from '@/components/ivy/file-dropzone';
 
 interface Props {
   freeCourse: FreeCourse & {

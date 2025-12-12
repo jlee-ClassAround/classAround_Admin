@@ -41,7 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                                     </div>
                                 </div>
                                 <div className="bg-slate-100 h-full">
-                                    <div className="max-w-[1200px] mx-auto px-5 py-10 h-full w-full">
+                                    <div className="max-w-[1600px] mx-auto px-5 py-10 h-full w-full">
                                         {children}
                                     </div>
                                 </div>

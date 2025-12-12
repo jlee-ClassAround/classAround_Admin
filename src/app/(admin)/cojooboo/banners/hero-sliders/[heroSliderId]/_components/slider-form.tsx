@@ -1,7 +1,7 @@
 'use client';
 
 import { DatePickerComponent } from '@/components/global/date-picker-component';
-import { FileDropzone } from '@/components/global/file-dropzone';
+import { FileDropzone } from '@/components/cojooboo/file-dropzone';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {

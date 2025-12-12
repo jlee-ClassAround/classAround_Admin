@@ -22,7 +22,7 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { DatePickerComponent } from '@/components/global/date-picker-component';
-import { FileDropzone } from '@/components/global/file-dropzone';
+import { FileDropzone } from '@/components/ivy/file-dropzone';
 import { Card } from '@/components/ui/card';
 import { ebookSchema, EbookSchema } from '@/lib/ivy/schemas';
 import { useDetailImagesStore } from '@/store/use-detail-images';

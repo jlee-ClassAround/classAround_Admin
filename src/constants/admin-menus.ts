@@ -21,6 +21,8 @@ import {
     Banknote,
     UserPlus,
     Send,
+    Angry,
+    MessageCircleMore,
 } from 'lucide-react';
 
 /* ---------- 타입 ---------- */
@@ -219,6 +221,19 @@ export const adminMenuGroups: AdminMenuGroup[] = [
                 label: '어드민 신청',
                 href: '/admin/pending',
                 icon: UserPlus,
+                subMenus: [], // 필수이므로 빈 배열로 제공
+            },
+        ],
+    },
+    {
+        title: 'CX 관리',
+        prefix: 'cx',
+        icon: Angry,
+        menus: [
+            {
+                label: '코주부 비즈니스',
+                href: '/cx/kakao',
+                icon: MessageCircleMore,
                 subMenus: [], // 필수이므로 빈 배열로 제공
             },
         ],

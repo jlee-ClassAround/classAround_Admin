@@ -32,7 +32,7 @@ import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import Tiptap from '@/components/tiptap/tiptap';
-import { FileDropzone } from '@/components/global/file-dropzone';
+import { FileDropzone } from '@/components/cojooboo/file-dropzone';
 import { IGetCategories } from '@/app/(admin)/cojooboo/_actions/categories/get-categories';
 import { updateTeacherAction } from '../actions';
 

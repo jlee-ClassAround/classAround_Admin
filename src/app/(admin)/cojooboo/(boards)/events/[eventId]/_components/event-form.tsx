@@ -1,6 +1,5 @@
 'use client';
 
-import { FileDropzone } from '@/components/global/file-dropzone';
 import Tiptap from '@/components/tiptap/tiptap';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,6 +23,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { createEventAction, updateEventAction } from '../../actions';
+import { FileDropzone } from '@/components/cojooboo/file-dropzone';
 
 interface Props {
     initialData: Event | null;
