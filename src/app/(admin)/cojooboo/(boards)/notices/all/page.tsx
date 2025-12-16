@@ -20,7 +20,7 @@ export default async function AdminNoticesPage() {
             <div className="flex items-center justify-between">
                 <h1 className="text-xl font-semibold">모든 공지사항</h1>
                 <Button asChild>
-                    <Link href="/admin/notices/new">글쓰기</Link>
+                    <Link href="/cojooboo/notices/new">글쓰기</Link>
                 </Button>
             </div>
             <Card className="p-8">

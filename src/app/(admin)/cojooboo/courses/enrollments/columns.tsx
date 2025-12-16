@@ -60,7 +60,7 @@ export const columns: ColumnDef<EnrollmentWithRelations>[] = [
             return (
                 <div className="max-w-[300px] truncate">
                     <Link
-                        href={`/admin/courses/${data.id}`}
+                        href={`/cojooboo/courses/${data.id}`}
                         className="hover:text-primary hover:underline"
                     >
                         {data.title}
@@ -80,7 +80,7 @@ export const columns: ColumnDef<EnrollmentWithRelations>[] = [
             return (
                 <div className="truncate">
                     <Link
-                        href={`/admin/users/${data.id}`}
+                        href={`/cojooboo/users/${data.id}`}
                         className="hover:text-primary hover:underline"
                     >
                         {data.username}

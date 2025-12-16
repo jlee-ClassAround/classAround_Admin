@@ -205,7 +205,7 @@ function ActionCell({ row }: { row: Row<User> }) {
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem>
-                        <Link href={`/admin/users/${data.id}`} className="flex items-center">
+                        <Link href={`/cojooboo/users/${data.id}`} className="flex items-center">
                             <Edit className="size-4 mr-2 text-muted-foreground" />
                             상세보기
                         </Link>
