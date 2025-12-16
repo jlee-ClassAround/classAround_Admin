@@ -45,10 +45,10 @@ export function EbookIdHeader({ ebook }: Props) {
                             기본 설정
                         </Link>
                         {/* <Link
-              href={`/admin/ebooks/${ebook.id}/students`}
+              href={`/ivy/ebooks/${ebook.id}/students`}
               className={cn(
                 "border-b-2 pb-1 border-transparent transition-colors text-gray-500",
-                pathname.includes(`/admin/ebooks/${ebook.id}/students`) &&
+                pathname.includes(`/ivy/ebooks/${ebook.id}/students`) &&
                   "border-primary text-black"
               )}
             >

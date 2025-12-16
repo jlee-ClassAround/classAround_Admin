@@ -59,7 +59,7 @@ export function SliderForm({ initialData }: Props) {
                 await axios.post('/api/banners/hero-sliders', values);
             }
             toast.success('정상적으로 처리되었습니다.');
-            router.push('/admin/banners/hero-sliders');
+            router.push('/cojooboo/banners/hero-sliders');
             router.refresh();
         } catch {
             toast.error('처리 중 오류가 발생했습니다.');

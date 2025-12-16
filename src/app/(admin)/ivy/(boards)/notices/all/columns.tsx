@@ -55,7 +55,7 @@ export const columns: ColumnDef<Notice>[] = [
             const data = row.original;
             return (
                 <div className="max-w-[300px] truncate">
-                    <Link href={`/admin/notices/${data.id}`} className="hover:text-primary">
+                    <Link href={`/ivy/notices/${data.id}`} className="hover:text-primary">
                         {data.title}
                     </Link>
                 </div>
@@ -174,7 +174,7 @@ function ActionCell({ row }: { row: Row<Notice> }) {
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem>
-                        <Link href={`/admin/notices/${data.id}`} className="flex items-center">
+                        <Link href={`/ivy/notices/${data.id}`} className="flex items-center">
                             <Edit className="size-4 mr-2 text-muted-foreground" />
                             편집하기
                         </Link>

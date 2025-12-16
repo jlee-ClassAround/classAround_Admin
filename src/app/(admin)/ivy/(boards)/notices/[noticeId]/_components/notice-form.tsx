@@ -52,7 +52,7 @@ export function NoticeForm({ initialData }: Props) {
                 return;
             }
             toast.success('정상적으로 처리되었습니다.');
-            router.push(`/admin/notices/all`);
+            router.push(`/ivy/notices/all`);
             router.refresh();
         } catch {
             toast.error('처리 중 오류가 발생했습니다.');
