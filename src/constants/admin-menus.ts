@@ -1,4 +1,4 @@
-// src/constants-menus.ts
+// src/constants/admin-menus.ts
 import type { ComponentType } from 'react';
 import {
     Bitcoin,
@@ -118,14 +118,17 @@ export const baseAdminMenus: AdminMenu[] = [
             { label: '결제 내역', href: '/payments/history' },
             {
                 label: '강의별 결제내역',
-                href: '/payments/lecture-payments/2025',
+                href: '/payments/lecture-payments',
                 subMenus: [
-                    { label: '2025년도', href: '/2025' },
-                    { label: '2024년도', href: '/2024' },
+                    {
+                        label: '2025년도',
+                        href: '/payments/lecture-payments/2025',
+                    },
                 ],
             },
         ],
     },
+
     {
         label: '사용자 관리',
         icon: Users,
@@ -177,6 +180,10 @@ function withPrefix(prefix: string, menus: AdminMenu[]): AdminMenu[] {
         subMenus: menu.subMenus.map((sub) => ({
             ...sub,
             href: `/${prefix}${sub.href}`,
+            subMenus: sub.subMenus?.map((subsub) => ({
+                ...subsub,
+                href: `/${prefix}${subsub.href}`,
+            })),
         })),
     }));
 }
@@ -234,13 +241,13 @@ export const adminMenuGroups: AdminMenuGroup[] = [
                 label: '어드민 목록',
                 href: '/admin/users',
                 icon: UsersRound,
-                subMenus: [], // 필수이므로 빈 배열로 제공
+                subMenus: [],
             },
             {
                 label: '어드민 신청',
                 href: '/admin/pending',
                 icon: UserPlus,
-                subMenus: [], // 필수이므로 빈 배열로 제공
+                subMenus: [],
             },
         ],
     },
@@ -253,7 +260,7 @@ export const adminMenuGroups: AdminMenuGroup[] = [
                 label: '코주부 비즈니스',
                 href: '/cx/kakao',
                 icon: MessageCircleMore,
-                subMenus: [], // 필수이므로 빈 배열로 제공
+                subMenus: [],
             },
         ],
     },

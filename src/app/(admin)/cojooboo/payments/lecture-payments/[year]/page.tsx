@@ -1,31 +1,35 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { getPaymentStats } from '../_actions/get-payments-stats';
+
 import { getPayments } from '../_actions/get-payments';
 import { getDailyStats } from '../../../_actions/payments/get-daily-stats';
 import { getAdminCourses } from '../../../_actions/courses/get-admin-courses';
+import { PaymentStats } from '../../history/_components/payment-stats';
+import { PaymentDataTable } from '../_components';
+import { columns } from './columns';
 
 interface PageProps {
-    params: {
+    params: Promise<{
         year: string;
-    };
-    searchParams: {
+    }>;
+    searchParams: Promise<{
         from?: string;
         to?: string;
         status?: string;
         type?: string;
         courseId?: string;
         search?: string;
-    };
+    }>;
 }
 
 export default async function AdminLecturePaymentsPage({ params, searchParams }: PageProps) {
-    const year = Number(params.year);
-    if (!Number.isInteger(year)) {
+    const { year } = await params;
+    const { from, to, status, type, courseId, search } = await searchParams;
+
+    const yearNum = parseInt(year);
+    if (isNaN(yearNum) || yearNum < 2000 || yearNum > 2100) {
         throw new Error('Invalid year');
     }
-    const { from, to, status, type = 'CARD', courseId, search } = searchParams;
-
     const dateRange =
         from && to
             ? {
@@ -33,17 +37,17 @@ export default async function AdminLecturePaymentsPage({ params, searchParams }:
                   to: new Date(to),
               }
             : {
-                  from: new Date(year, 0, 1),
-                  to: new Date(year + 1, 0, 1),
+                  from: new Date(yearNum, 0, 1),
+                  to: new Date(yearNum + 1, 0, 1),
               };
 
-    const [stats, payments, dailyStats, courses] = await Promise.all([
-        getPaymentStats({ dateRange, status, type, courseId, search }),
-        getPayments({ dateRange, status, type, courseId, search }),
-        getDailyStats({ dateRange, status, type, courseId, search }),
-        getAdminCourses(),
-    ]);
-    console.log(stats);
+    // const [stats, payments, dailyStats, courses] = await Promise.all([
+    //     getPaymentStats({ dateRange, status, type, courseId, search }),
+    //     getPayments({ dateRange, status, type, courseId, search }),
+    //     getDailyStats({ dateRange, status, type, courseId, search }),
+    //     getAdminCourses(),
+    // ]);
+
     // const data = await getCoursesWithCustomer();
 
     return (

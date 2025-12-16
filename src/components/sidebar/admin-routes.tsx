@@ -1,7 +1,6 @@
 'use client';
 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-
 import {
     SidebarGroup,
     SidebarGroupContent,
@@ -22,11 +21,10 @@ export function AdminRoutes({ currentRole }: { currentRole?: string }) {
     const pathname = usePathname();
 
     const visibleMenuGroups = adminMenuGroups.filter((group) => {
-        if (group.onlySuperAdmin && currentRole !== 'superadmin') {
-            return false;
-        }
+        if (group.onlySuperAdmin && currentRole !== 'superadmin') return false;
         return true;
     });
+
     return (
         <>
             {visibleMenuGroups.map((group) => {
@@ -40,27 +38,27 @@ export function AdminRoutes({ currentRole }: { currentRole?: string }) {
                     >
                         <SidebarGroup>
                             <SidebarGroupContent>
-                                {/* ------------------------------
-                                    그룹 헤더 (코주부 / 아이비)
-                                ------------------------------ */}
+                                {/* 그룹 헤더 */}
                                 <CollapsibleTrigger asChild>
                                     <SidebarMenuButton className="font-bold">
                                         <group.icon className="w-4 h-4 mr-2" />
                                         <span>{group.title}</span>
-                                        <ChevronDown className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                                        <ChevronDown
+                                            className={cn(
+                                                'ml-auto transition-transform duration-200',
+                                                'group-data-[state=open]/collapsible:rotate-180'
+                                            )}
+                                        />
                                     </SidebarMenuButton>
                                 </CollapsibleTrigger>
 
                                 <CollapsibleContent>
                                     {group.menus.map((menu) => {
-                                        const isMenuActive =
-                                            pathname === menu.href ||
-                                            pathname.startsWith(menu.href);
+                                        // 정확한 경로 매칭으로 수정
+                                        const isMenuActive = pathname === menu.href;
 
-                                        /** -----------------------------------------
-                                         * 1) 대시보드 메뉴 (subMenus 없음 → 단일 버튼)
-                                         ----------------------------------------- */
-                                        if (menu.subMenus.length === 0) {
+                                        /* 서브메뉴가 없는 단일 메뉴 */
+                                        if (!menu.subMenus || menu.subMenus.length === 0) {
                                             return (
                                                 <SidebarMenuItem key={menu.href} className="ml-2">
                                                     <SidebarMenuButton asChild>
@@ -73,8 +71,8 @@ export function AdminRoutes({ currentRole }: { currentRole?: string }) {
                                                             />
                                                             <span
                                                                 className={cn(
-                                                                    isMenuActive &&
-                                                                        'font-semibold text-primary'
+                                                                    'text-foreground',
+                                                                    isMenuActive && 'font-bold'
                                                                 )}
                                                             >
                                                                 {menu.label}
@@ -85,14 +83,23 @@ export function AdminRoutes({ currentRole }: { currentRole?: string }) {
                                             );
                                         }
 
-                                        /** -----------------------------------------
-                                         * 2) 일반 카테고리 메뉴 (접힘 기능 포함)
-                                         ----------------------------------------- */
+                                        /* 서브메뉴가 있는 카테고리 메뉴 */
+                                        const hasActiveChild = menu.subMenus?.some(
+                                            (sub) =>
+                                                pathname === sub.href ||
+                                                pathname.startsWith(sub.href || '') ||
+                                                sub.subMenus?.some(
+                                                    (child) =>
+                                                        pathname === child.href ||
+                                                        pathname.startsWith(child.href)
+                                                )
+                                        );
+
                                         return (
                                             <Collapsible
                                                 key={menu.href}
-                                                defaultOpen={isMenuActive}
-                                                className="ml-2 group/collapsible"
+                                                defaultOpen={hasActiveChild}
+                                                className="ml-2 group/submenu"
                                             >
                                                 <SidebarMenuItem>
                                                     <CollapsibleTrigger asChild>
@@ -100,90 +107,130 @@ export function AdminRoutes({ currentRole }: { currentRole?: string }) {
                                                             <menu.icon
                                                                 className={cn(
                                                                     'w-4 h-4 mr-2',
-                                                                    isMenuActive && 'text-primary'
+                                                                    hasActiveChild && 'text-primary'
                                                                 )}
                                                             />
                                                             <span
                                                                 className={cn(
-                                                                    isMenuActive &&
-                                                                        'font-semibold text-primary'
+                                                                    'text-foreground',
+                                                                    hasActiveChild && 'font-bold'
                                                                 )}
                                                             >
                                                                 {menu.label}
                                                             </span>
-                                                            <ChevronDown className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                                                            <ChevronDown
+                                                                className={cn(
+                                                                    'ml-auto transition-transform duration-200',
+                                                                    'group-data-[state=open]/submenu:rotate-180'
+                                                                )}
+                                                            />
                                                         </SidebarMenuButton>
                                                     </CollapsibleTrigger>
 
                                                     <CollapsibleContent>
                                                         <SidebarMenuSub>
                                                             {menu.subMenus.map((sub) => {
+                                                                const children = sub.subMenus ?? [];
+                                                                const hasChildren =
+                                                                    children.length > 0;
                                                                 const isSubActive =
                                                                     pathname === sub.href;
 
                                                                 return (
                                                                     <SidebarMenuSubItem
-                                                                        key={sub.href}
+                                                                        key={sub.href || sub.label}
                                                                     >
-                                                                        {/* 1️⃣ sub 메뉴 버튼 */}
-                                                                        <SidebarMenuSubButton
-                                                                            asChild
-                                                                        >
-                                                                            <Link href={sub.href}>
-                                                                                <span
-                                                                                    className={cn(
-                                                                                        isSubActive &&
-                                                                                            'text-primary font-semibold'
-                                                                                    )}
+                                                                        {hasChildren ? (
+                                                                            /* sub가 카테고리(접힘)인 경우 */
+                                                                            <Collapsible className="group/subsubmenu">
+                                                                                <CollapsibleTrigger
+                                                                                    asChild
                                                                                 >
-                                                                                    {sub.label}
-                                                                                </span>
-                                                                            </Link>
-                                                                        </SidebarMenuSubButton>
+                                                                                    <SidebarMenuSubButton>
+                                                                                        <span
+                                                                                            className={cn(
+                                                                                                'text-foreground',
+                                                                                                isSubActive &&
+                                                                                                    'font-bold'
+                                                                                            )}
+                                                                                        >
+                                                                                            {
+                                                                                                sub.label
+                                                                                            }
+                                                                                        </span>
+                                                                                        <ChevronDown
+                                                                                            className={cn(
+                                                                                                'ml-auto w-3 h-3 transition-transform duration-200',
+                                                                                                'group-data-[state=open]/subsubmenu:rotate-180'
+                                                                                            )}
+                                                                                        />
+                                                                                    </SidebarMenuSubButton>
+                                                                                </CollapsibleTrigger>
 
-                                                                        {/* 2️⃣ sub > subMenus (있을 때만 한 번 더) */}
-                                                                        {sub.subMenus &&
-                                                                            sub.subMenus.length >
-                                                                                0 && (
-                                                                                <SidebarMenuSub className="ml-3 mt-1">
-                                                                                    {sub.subMenus.map(
-                                                                                        (child) => {
-                                                                                            const isChildActive =
-                                                                                                pathname ===
-                                                                                                child.href;
+                                                                                <CollapsibleContent>
+                                                                                    <SidebarMenuSub className="ml-3 mt-1">
+                                                                                        {children.map(
+                                                                                            (
+                                                                                                child
+                                                                                            ) => {
+                                                                                                const isChildActive =
+                                                                                                    pathname ===
+                                                                                                    child.href;
 
-                                                                                            return (
-                                                                                                <SidebarMenuSubItem
-                                                                                                    key={
-                                                                                                        child.href
-                                                                                                    }
-                                                                                                >
-                                                                                                    <SidebarMenuSubButton
-                                                                                                        asChild
+                                                                                                return (
+                                                                                                    <SidebarMenuSubItem
+                                                                                                        key={
+                                                                                                            child.href
+                                                                                                        }
                                                                                                     >
-                                                                                                        <Link
-                                                                                                            href={
-                                                                                                                child.href
-                                                                                                            }
+                                                                                                        <SidebarMenuSubButton
+                                                                                                            asChild
                                                                                                         >
-                                                                                                            <span
-                                                                                                                className={cn(
-                                                                                                                    isChildActive &&
-                                                                                                                        'text-primary font-semibold'
-                                                                                                                )}
-                                                                                                            >
-                                                                                                                {
-                                                                                                                    child.label
+                                                                                                            <Link
+                                                                                                                href={
+                                                                                                                    child.href
                                                                                                                 }
-                                                                                                            </span>
-                                                                                                        </Link>
-                                                                                                    </SidebarMenuSubButton>
-                                                                                                </SidebarMenuSubItem>
-                                                                                            );
-                                                                                        }
-                                                                                    )}
-                                                                                </SidebarMenuSub>
-                                                                            )}
+                                                                                                            >
+                                                                                                                <span
+                                                                                                                    className={cn(
+                                                                                                                        'text-foreground',
+                                                                                                                        isChildActive &&
+                                                                                                                            'font-bold'
+                                                                                                                    )}
+                                                                                                                >
+                                                                                                                    {
+                                                                                                                        child.label
+                                                                                                                    }
+                                                                                                                </span>
+                                                                                                            </Link>
+                                                                                                        </SidebarMenuSubButton>
+                                                                                                    </SidebarMenuSubItem>
+                                                                                                );
+                                                                                            }
+                                                                                        )}
+                                                                                    </SidebarMenuSub>
+                                                                                </CollapsibleContent>
+                                                                            </Collapsible>
+                                                                        ) : (
+                                                                            /* sub가 링크인 경우 */
+                                                                            <SidebarMenuSubButton
+                                                                                asChild
+                                                                            >
+                                                                                <Link
+                                                                                    href={sub.href}
+                                                                                >
+                                                                                    <span
+                                                                                        className={cn(
+                                                                                            'text-foreground',
+                                                                                            isSubActive &&
+                                                                                                'font-bold'
+                                                                                        )}
+                                                                                    >
+                                                                                        {sub.label}
+                                                                                    </span>
+                                                                                </Link>
+                                                                            </SidebarMenuSubButton>
+                                                                        )}
                                                                     </SidebarMenuSubItem>
                                                                 );
                                                             })}
