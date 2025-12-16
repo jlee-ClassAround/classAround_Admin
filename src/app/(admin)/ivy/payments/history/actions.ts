@@ -6,7 +6,7 @@ import { revalidateTag } from 'next/cache';
 
 // 토스에 보낼 시크릿키 암호화
 const encryptedSecretKey =
-    'Basic ' + Buffer.from(process.env.IVY_TOSS_SECRET_KEY! + ':').toString('base64');
+    'Basic ' + Buffer.from(process.env.TOSS_SECRET_KEY! + ':').toString('base64');
 
 interface RefundActionPayload {
     paymentId: string;
