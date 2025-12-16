@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { cojoobooDb } from '@/lib/cojoobooDb';
+import { ivyDb } from '@/lib/ivyDb';
 import { PartialCourseModal } from './partial-course-modal';
 import { Eye, SquarePen, Trash } from 'lucide-react';
 import Link from 'next/link';
@@ -12,7 +12,7 @@ interface Props {
 }
 
 export default async function PartialCourseForm({ courseId, title }: Props) {
-    const partialCourses = await cojoobooDb.partialCourse.findMany({
+    const partialCourses = await ivyDb.partialCourse.findMany({
         where: { mainId: courseId },
         select: {
             id: true,
@@ -87,7 +87,7 @@ export default async function PartialCourseForm({ courseId, title }: Props) {
 
                                         <Button variant="ghost" size="icon" asChild>
                                             <Link
-                                                href={`${process.env.NEXT_PUBLIC_COJOOBOO_APP_URL}/partial-courses/${item.id}`}
+                                                href={`${process.env.NEXT_PUBLIC_IVY_APP_URL}/partial-courses/${item.id}`}
                                             >
                                                 <Eye className="size-4" />
                                                 <span className="sr-only">미리보기</span>

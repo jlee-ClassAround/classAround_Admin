@@ -1,6 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
-  output   = "../../src/generated/ivy"
+  provider      = "prisma-client-js"
+  output        = "../../src/generated/ivy"
   binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
@@ -38,37 +38,38 @@ model User {
 }
 
 model Course {
-  id                String         @id @default(uuid())
-  title             String         @default("")
+  id                String          @id @default(uuid())
+  title             String          @default("")
   description       String?
-  productType       ProductType    @default(SIMPLE)
+  productType       ProductType     @default(SIMPLE)
   originalPrice     Int?
   discountedPrice   Int?
-  showInInstallment Boolean        @default(false)
-  isTaxFree         Boolean        @default(false)
+  showInInstallment Boolean         @default(false)
+  isTaxFree         Boolean         @default(false)
   thumbnail         String?
-  isPublished       Boolean        @default(false)
-  isHidden          Boolean        @default(false)
-  isFocusMode       Boolean        @default(false)
-  isUpcoming        Boolean        @default(false)
+  isPublished       Boolean         @default(false)
+  isHidden          Boolean         @default(false)
+  isFocusMode       Boolean         @default(false)
+  isUpcoming        Boolean         @default(false)
   endDate           DateTime?
   maxPurchaseCount  Int?
   accessDuration    Int?
   kakaoRoomLink     String?
   kakaoRoomPassword String?
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
   categoryId        String?
   chapters          Chapter[]
-  category          Category?      @relation(fields: [categoryId], references: [id])
+  category          Category?       @relation(fields: [categoryId], references: [id])
   options           CourseOption[]
   detailImages      DetailImage[]
   enrollments       Enrollment[]
+  PartialCourse     PartialCourse[]
   reviews           Review[]
   tossCustomers     TossCustomer[]
-  coupons           Coupon[]       @relation("CouponToCourse")
-  productBadge      ProductBadge[] @relation("CourseToProductBadge")
-  teachers          Teacher[]      @relation("CourseToTeacher")
+  coupons           Coupon[]        @relation("CouponToCourse")
+  productBadge      ProductBadge[]  @relation("CourseToProductBadge")
+  teachers          Teacher[]       @relation("CourseToTeacher")
 }
 
 model FreeCourse {
@@ -514,6 +515,19 @@ model EbookPurchase {
   user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, ebookId])
+}
+
+model PartialCourse {
+  id            String   @id @default(dbgenerated("gen_random_uuid()"))
+  mainId        String
+  title         String
+  originalPrice Int?
+  createdAt     DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime @default(now()) @db.Timestamptz(6)
+  isHidden      Boolean  @default(false)
+  Course        Course   @relation(fields: [mainId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([mainId])
 }
 
 enum ProductType {
