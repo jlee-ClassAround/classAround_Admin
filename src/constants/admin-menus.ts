@@ -201,7 +201,13 @@ export const adminMenuGroups: AdminMenuGroup[] = [
                 label: 'RS 확인',
                 href: '/rs/checkout',
                 icon: Send,
-                subMenus: [], // 필수이므로 빈 배열로 제공
+                subMenus: [],
+            },
+            {
+                label: '코어데브(트레킹)',
+                href: '/rs/coredev',
+                icon: Send,
+                subMenus: [],
             },
         ],
     },
