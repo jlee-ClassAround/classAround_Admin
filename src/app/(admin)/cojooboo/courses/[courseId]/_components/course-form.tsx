@@ -52,7 +52,7 @@ import { OptionAction } from './option-action';
 import { TeacherCombobox } from './teacher-combobox';
 
 import { DatePickerComponent } from '@/components/global/date-picker-component';
-import { FileDropzone } from '@/components/global/file-dropzone';
+import { FileDropzone } from '@/components/cojooboo/file-dropzone';
 import { updateCourseAction } from '../../actions/courses';
 
 interface Props {

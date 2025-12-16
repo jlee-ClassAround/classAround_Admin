@@ -1,7 +1,7 @@
 'use server';
 
 import { ivyDb } from '@/lib/ivyDb';
-import { Course } from '@prisma/client';
+import { Course } from '@/generated/ivy';
 import { getUserProgress } from '../lessons/get-user-progress';
 
 interface Props {

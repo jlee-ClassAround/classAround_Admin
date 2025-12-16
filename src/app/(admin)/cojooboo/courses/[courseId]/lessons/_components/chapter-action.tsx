@@ -1,6 +1,6 @@
 'use client';
 
-import { useCourseEditorStore } from '@/store/use-course-editor-store';
+import { useCourseEditorStore } from '@/store/cojooboo/use-course-editor-store';
 import { Loader2, Plus } from 'lucide-react';
 import { ChapterDragDrop } from './chapter-drag-drop';
 import { Chapter, Lesson } from '@/generated/cojooboo';

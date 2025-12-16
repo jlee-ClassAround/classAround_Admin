@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { PrismaClient as CojoobooPrisma } from '@/generated/cojooboo';
+import { PrismaClient as CojoobooPrisma } from '@prisma/cojooboo-client';
 
 declare global {
     var cojoobooPrisma: CojoobooPrisma | undefined;

@@ -22,7 +22,7 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { DatePickerComponent } from '@/components/global/date-picker-component';
-import { FileDropzone } from '@/components/global/file-dropzone';
+import { FileDropzone } from '@/components/cojooboo/file-dropzone';
 import { Card } from '@/components/ui/card';
 import { ebookSchema, EbookSchema } from '@/lib/cojooboo/schemas';
 import { useDetailImagesStore } from '@/store/use-detail-images';

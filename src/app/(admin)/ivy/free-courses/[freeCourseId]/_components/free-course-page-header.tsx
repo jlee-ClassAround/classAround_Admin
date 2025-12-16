@@ -46,6 +46,16 @@ export function FreeCoursePageHeader({ freeCourse }: Props) {
                             기본 설정
                         </Link>
                         <Link
+                            href={`/ivy/free-courses/${freeCourse.id}/tracking`}
+                            className={cn(
+                                'border-b-2 pb-1 border-transparent transition-colors text-gray-500',
+                                pathname === `/ivy/free-courses/${freeCourse.id}/tracking` &&
+                                    'border-primary text-black'
+                            )}
+                        >
+                            트래킹
+                        </Link>
+                        <Link
                             href={`/ivy/free-courses/${freeCourse.id}/apply`}
                             className={cn(
                                 'border-b-2 pb-1 border-transparent transition-colors text-gray-500',
@@ -60,7 +70,9 @@ export function FreeCoursePageHeader({ freeCourse }: Props) {
             </div>
             <div className="flex items-center gap-x-2">
                 <Button variant="ghost" size="icon" asChild>
-                    <Link href={`/free-courses/${freeCourse.id}`}>
+                    <Link
+                        href={`${process.env.NEXT_PUBLIC_IVY_APP_URL}/free-courses/${freeCourse.id}`}
+                    >
                         <Eye className="size-4" />
                         <span className="sr-only">미리보기</span>
                     </Link>

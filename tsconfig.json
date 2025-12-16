@@ -18,7 +18,11 @@
             }
         ],
         "paths": {
-            "@/*": ["./src/*"]
+            "@/*": ["./src/*"],
+            "@prisma/cojooboo-client": ["./src/generated/cojooboo"],
+            "@prisma/ivy-client": ["./src/generated/ivy"],
+            "@prisma/classaround-client": ["./src/generated/classaround"],
+            "@prisma/mysql-client": ["./src/generated/mysql"]
         },
         "target": "ES2017"
     },

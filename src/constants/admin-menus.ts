@@ -18,6 +18,11 @@ import {
     ImagesIcon,
     Settings,
     UsersRound,
+    Banknote,
+    UserPlus,
+    Send,
+    Angry,
+    MessageCircleMore,
 } from 'lucide-react';
 
 /* ---------- 타입 ---------- */
@@ -176,7 +181,7 @@ function addDashboard(prefix: string): AdminMenu {
 /* ---------- 브랜드 메뉴 그룹 ---------- */
 export const adminMenuGroups: AdminMenuGroup[] = [
     {
-        title: '코주부 스쿨',
+        title: '코주부 클래스',
         prefix: 'cojooboo',
         icon: Bitcoin,
         menus: [addDashboard('cojooboo'), ...withPrefix('cojooboo', baseAdminMenus)],
@@ -188,6 +193,25 @@ export const adminMenuGroups: AdminMenuGroup[] = [
         menus: [addDashboard('ivy'), ...withPrefix('ivy', baseAdminMenus)],
     },
     {
+        title: '결산 관리',
+        prefix: 'rs',
+        icon: Banknote,
+        menus: [
+            {
+                label: 'RS 확인',
+                href: '/rs/checkout',
+                icon: Send,
+                subMenus: [],
+            },
+            {
+                label: '코어데브(트레킹)',
+                href: '/rs/coredev',
+                icon: Send,
+                subMenus: [],
+            },
+        ],
+    },
+    {
         title: '어드민 관리',
         prefix: 'admin',
         icon: UsersRound,
@@ -197,6 +221,25 @@ export const adminMenuGroups: AdminMenuGroup[] = [
                 label: '어드민 목록',
                 href: '/admin/users',
                 icon: UsersRound,
+                subMenus: [], // 필수이므로 빈 배열로 제공
+            },
+            {
+                label: '어드민 신청',
+                href: '/admin/pending',
+                icon: UserPlus,
+                subMenus: [], // 필수이므로 빈 배열로 제공
+            },
+        ],
+    },
+    {
+        title: 'CX 관리',
+        prefix: 'cx',
+        icon: Angry,
+        menus: [
+            {
+                label: '코주부 비즈니스',
+                href: '/cx/kakao',
+                icon: MessageCircleMore,
                 subMenus: [], // 필수이므로 빈 배열로 제공
             },
         ],

@@ -44,6 +44,10 @@ export async function loginAction({ userId, password }: LoginPayload) {
         return { success: false, error: '비밀번호가 일치하지 않습니다.' };
     }
 
+    if (user.roleId !== 'admin' && user.roleId !== 'superadmin') {
+        return { success: false, error: '승인되지 않은 계정입니다.' };
+    }
+
     const session = await getSession();
     session.id = user.id;
     session.userId = user.userId ?? '';

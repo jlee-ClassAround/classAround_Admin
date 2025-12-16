@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { CourseForm } from './_components/course-form';
 import { OptionModal } from './_components/option-modal';
 import { getCategories } from '../../_actions/categories/get-categories';
+import PartialCourseForm from './_components/partial-course-form';
 
 export default async function CourseIdPage(props: { params: Promise<{ courseId: string }> }) {
     const { courseId } = await props.params;
@@ -51,6 +52,7 @@ export default async function CourseIdPage(props: { params: Promise<{ courseId: 
                 teachers={teachers}
                 productBadges={productBadges}
             />
+            <PartialCourseForm courseId={courseId} title={course.title} />
             <OptionModal courseId={courseId} />
         </>
     );

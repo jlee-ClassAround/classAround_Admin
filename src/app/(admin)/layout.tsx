@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 
 import { cn } from '@/lib/utils';
+import './globals.css';
 
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AdminSidebar } from '@/components/sidebar/admin-sidebar';
@@ -40,7 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                                     </div>
                                 </div>
                                 <div className="bg-slate-100 h-full">
-                                    <div className="max-w-[1200px] mx-auto px-5 py-10 h-full w-full">
+                                    <div className=" mx-auto px-5 py-5 h-full w-full">
                                         {children}
                                     </div>
                                 </div>

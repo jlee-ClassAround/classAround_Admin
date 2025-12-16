@@ -20,6 +20,7 @@ import { adminMenuGroups } from '@/constants/admin-menus';
 
 export function AdminRoutes({ currentRole }: { currentRole?: string }) {
     const pathname = usePathname();
+
     const visibleMenuGroups = adminMenuGroups.filter((group) => {
         if (group.onlySuperAdmin && currentRole !== 'superadmin') {
             return false;
