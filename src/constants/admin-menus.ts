@@ -26,10 +26,16 @@ import {
 } from 'lucide-react';
 
 /* ---------- 타입 ---------- */
+export interface AdminSubSubMenu {
+    label: string;
+    href: string;
+}
+
 export interface AdminSubMenu {
     label: string;
     href: string;
     onlySuperAdmin?: boolean;
+    subMenus?: AdminSubSubMenu[];
 }
 
 export interface AdminMenu {
@@ -110,7 +116,14 @@ export const baseAdminMenus: AdminMenu[] = [
         href: '/payments',
         subMenus: [
             { label: '결제 내역', href: '/payments/history' },
-            // { label: '강의별 결제내역', href: '/lecture-payments' },
+            {
+                label: '강의별 결제내역',
+                href: '/payments/lecture-payments/2025',
+                subMenus: [
+                    { label: '2025년도', href: '/2025' },
+                    { label: '2024년도', href: '/2024' },
+                ],
+            },
         ],
     },
     {

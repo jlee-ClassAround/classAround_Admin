@@ -17,7 +17,6 @@ import Image from 'next/image';
 export async function AdminSidebar() {
     const session = await getSession();
     const roleId = session?.roleId;
-    console.log(roleId);
     return (
         <Sidebar collapsible="icon" className="light bg-background z-20">
             <SidebarHeader>
