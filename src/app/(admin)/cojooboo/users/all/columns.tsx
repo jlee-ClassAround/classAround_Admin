@@ -20,8 +20,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { deleteUser } from '../actions/delete-user';
 import { deleteUsers } from '../actions/delete-users';
+import { deleteUser } from '../actions/delete-user';
 
 export const userColumns: ColumnDef<User>[] = [
     {
@@ -205,7 +205,7 @@ function ActionCell({ row }: { row: Row<User> }) {
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem>
-                        <Link href={`/cojooboo/users/${data.id}`} className="flex items-center">
+                        <Link href={`/admin/users/${data.id}`} className="flex items-center">
                             <Edit className="size-4 mr-2 text-muted-foreground" />
                             상세보기
                         </Link>

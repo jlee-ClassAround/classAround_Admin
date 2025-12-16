@@ -46,6 +46,7 @@ export function DownloadCsvButton({ users }: DownloadCsvButtonProps) {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     };
 
     return (
