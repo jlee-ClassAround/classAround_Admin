@@ -20,6 +20,7 @@ export type LecturePaymentDetailRow = {
     buyerEmail: string | null;
     buyerPhone: string | null;
 
+    // ✅ 실제 결제된 강의 id / title (부모 페이지에서 자식 결제도 나오기 때문에 중요)
     courseId: string;
     courseTitle: string;
 
@@ -30,64 +31,31 @@ export type LecturePaymentDetailRow = {
     netAmount: number;
 
     receiptUrl: string | null;
+
+    // ✅ RefundAction에서 필요한 값
+    tossCustomerId: string | null;
+
+    // ✅ 표시용(없을 수 있음 → null 허용)
+    refundableAmount: number | null;
 };
 
 export type GetLecturePaymentsParams = {
-    courseId: string;
+    courseId: string; // 여기 들어온 courseId를 "부모"로 보고, 자식 결제도 합쳐서 보여줌
     status?: string;
     type?: string;
     search?: string;
 };
 
-const PAYMENT_STATUS_SET: ReadonlySet<string> = new Set<string>(Object.values(PaymentStatus));
-const ORDER_STATUS_SET: ReadonlySet<string> = new Set<string>(Object.values(OrderStatus));
-const PAYMENT_METHOD_SET: ReadonlySet<string> = new Set<string>(Object.values(PaymentMethod));
-
-type Money = number;
+const PAYMENT_STATUS_SET = new Set<string>(Object.values(PaymentStatus));
+const ORDER_STATUS_SET = new Set<string>(Object.values(OrderStatus));
+const PAYMENT_METHOD_SET = new Set<string>(Object.values(PaymentMethod));
 
 function itemFinalPrice(item: { discountedPrice: number | null; originalPrice: number }): number {
     return item.discountedPrice ?? item.originalPrice;
 }
 
-function sum(nums: Array<number | null | undefined>): number {
-    return nums.reduce<number>((acc, n) => acc + (typeof n === 'number' ? n : 0), 0);
-}
-
-/**
- * 총액(total)을 items 비율로 분배 (반올림 오차는 마지막에 보정)
- */
-function allocateByRatio<T extends { key: string; price: number }>(
-    items: T[],
-    total: Money
-): Map<string, Money> {
-    const result = new Map<string, Money>();
-    if (items.length === 0) return result;
-
-    const prices = items.map((i) => i.price || 0);
-    const totalPrice = prices.reduce((a, b) => a + b, 0);
-
-    if (totalPrice <= 0 || total === 0) {
-        for (const it of items) result.set(it.key, 0);
-        return result;
-    }
-
-    const allocs: number[] = prices.map((p) => Math.floor((total * p) / totalPrice));
-    const used = allocs.reduce((a, b) => a + b, 0);
-    let remain = total - used;
-
-    let idx = 0;
-    while (remain > 0) {
-        allocs[idx] += 1;
-        remain -= 1;
-        idx = (idx + 1) % allocs.length;
-    }
-
-    for (let i = 0; i < items.length; i++) {
-        const k = items[i].key;
-        result.set(k, (result.get(k) ?? 0) + allocs[i]);
-    }
-
-    return result;
+function uniq(arr: string[]): string[] {
+    return Array.from(new Set(arr));
 }
 
 export async function getLecturePaymentsByOrder(
@@ -95,14 +63,16 @@ export async function getLecturePaymentsByOrder(
 ): Promise<{ rows: LecturePaymentDetailRow[] }> {
     const { courseId, status, type, search } = params;
 
-    // ✅ parentId 자식 강의 자동 포함
+    // ✅ 0) 부모(courseId)의 자식 강의 ids까지 포함
     const childCourses = await cojoobooDb.course.findMany({
         where: { parentId: courseId },
         select: { id: true },
     });
-    const targetCourseIds: string[] = [courseId, ...childCourses.map((c) => c.id)];
 
-    const itemWhereForOrder: Prisma.OrderItemWhereInput = {
+    const targetCourseIds = uniq([courseId, ...childCourses.map((c) => c.id)]);
+
+    // ✅ 1) OrderItem 필터: courseId / productId 둘 다 커버 (너 DB 구조가 섞여있어서)
+    const itemWhere: Prisma.OrderItemWhereInput = {
         productCategory: 'COURSE',
         OR: [{ courseId: { in: targetCourseIds } }, { productId: { in: targetCourseIds } }],
     };
@@ -127,7 +97,7 @@ export async function getLecturePaymentsByOrder(
         ...(paymentMethodFilter ? { paymentMethod: paymentMethodFilter } : {}),
         order: {
             ...(orderStatusFilter ? { status: orderStatusFilter } : {}),
-            orderItems: { some: itemWhereForOrder },
+            orderItems: { some: itemWhere },
             ...(q
                 ? {
                       OR: [
@@ -155,7 +125,6 @@ export async function getLecturePaymentsByOrder(
             amount: true,
             cancelAmount: true,
             receiptUrl: true,
-
             order: {
                 select: {
                     id: true,
@@ -170,86 +139,89 @@ export async function getLecturePaymentsByOrder(
                             phone: true,
                         },
                     },
-                    // ✅ 배분하려면 orderItems를 "전부" 가져와야 함(최소한 COURSE 전체)
                     orderItems: {
-                        where: { productCategory: 'COURSE' },
+                        where: itemWhere,
                         select: {
+                            // ✅ 어떤 강의로 결제된 건지 식별용
                             courseId: true,
                             productId: true,
+
                             productTitle: true,
                             originalPrice: true,
                             discountedPrice: true,
-                            productCategory: true,
                         },
+                        take: 1,
                     },
                 },
             },
         },
     });
 
-    const rows: LecturePaymentDetailRow[] = [];
+    // ✅ 2) Payment.tossPaymentKey(= TossCustomer.paymentKey)로 tossCustomerId / refundableAmount 매핑
+    const paymentKeys = payments
+        .map((p) => p.tossPaymentKey)
+        .filter((k): k is string => typeof k === 'string' && k.length > 0);
 
-    for (const p of payments) {
-        const orderItems = p.order.orderItems;
+    const tossCustomers = paymentKeys.length
+        ? await cojoobooDb.tossCustomer.findMany({
+              where: { paymentKey: { in: paymentKeys } },
+              select: {
+                  id: true,
+                  paymentKey: true,
+                  refundableAmount: true,
+              },
+          })
+        : [];
 
-        // ✅ 이 주문의 COURSE 아이템들 가격 기준으로 결제/환불 배분
-        const allocBase = orderItems
-            .map((it) => {
-                const resolvedCourseId = (it.courseId ?? it.productId) as string | null;
-                if (!resolvedCourseId) return null;
-                return {
-                    key: resolvedCourseId,
-                    price: itemFinalPrice({
-                        originalPrice: it.originalPrice,
-                        discountedPrice: it.discountedPrice,
-                    }),
-                };
-            })
-            .filter((v): v is { key: string; price: number } => Boolean(v?.key));
-
-        const paidAlloc = allocateByRatio(allocBase, p.amount);
-        const refundAlloc = allocateByRatio(allocBase, p.cancelAmount ?? 0);
-
-        for (const it of orderItems) {
-            const resolvedCourseId = (it.courseId ?? it.productId) as string | null;
-            if (!resolvedCourseId) continue;
-            if (!targetCourseIds.includes(resolvedCourseId)) continue;
-
-            const paidAmount = paidAlloc.get(resolvedCourseId) ?? 0;
-            const refundAmount = refundAlloc.get(resolvedCourseId) ?? 0;
-
-            rows.push({
-                paidAt: p.createdAt,
-                receiptUrl: p.receiptUrl,
-
-                orderId: p.order.id,
-                orderNumber: p.order.orderNumber,
-                orderStatus: p.order.status,
-
-                paymentId: p.id,
-                tossPaymentKey: p.tossPaymentKey,
-                paymentMethod: p.paymentMethod,
-                paymentStatus: p.paymentStatus,
-
-                userId: p.order.user?.id ?? null,
-                buyerName: p.order.user?.username ?? null,
-                buyerEmail: p.order.user?.email ?? null,
-                buyerPhone: p.order.user?.phone ?? null,
-
-                courseId: resolvedCourseId,
-                courseTitle: it.productTitle ?? '(알 수 없음)',
-
-                itemPrice: itemFinalPrice({
-                    originalPrice: it.originalPrice,
-                    discountedPrice: it.discountedPrice,
-                }),
-
-                paidAmount,
-                refundAmount,
-                netAmount: paidAmount - refundAmount,
-            });
+    const tcMap = new Map<string, { id: string; refundableAmount: number | null }>();
+    for (const tc of tossCustomers) {
+        if (tc.paymentKey) {
+            tcMap.set(tc.paymentKey, { id: tc.id, refundableAmount: tc.refundableAmount });
         }
     }
+
+    const rows: LecturePaymentDetailRow[] = payments.map((p) => {
+        const oi = p.order.orderItems[0];
+
+        const realCourseId = (oi?.courseId ?? oi?.productId ?? courseId) as string;
+        const title = oi?.productTitle ?? '(알 수 없음)';
+
+        const buyerName = p.order.user?.username ?? null;
+
+        const tc = p.tossPaymentKey ? tcMap.get(p.tossPaymentKey) : undefined;
+
+        return {
+            paidAt: p.createdAt,
+            receiptUrl: p.receiptUrl,
+
+            orderId: p.order.id,
+            orderNumber: p.order.orderNumber,
+            orderStatus: p.order.status,
+
+            paymentId: p.id,
+            tossPaymentKey: p.tossPaymentKey,
+            paymentMethod: p.paymentMethod,
+            paymentStatus: p.paymentStatus,
+
+            userId: p.order.user?.id ?? null,
+            buyerName,
+            buyerEmail: p.order.user?.email ?? null,
+            buyerPhone: p.order.user?.phone ?? null,
+
+            // ✅ 부모 화면에서도 실제 결제된 강의(자식 포함)로 내려줌
+            courseId: realCourseId,
+            courseTitle: title,
+
+            itemPrice: oi ? itemFinalPrice(oi) : 0,
+
+            paidAmount: p.amount,
+            refundAmount: p.cancelAmount ?? 0,
+            netAmount: p.amount - (p.cancelAmount ?? 0),
+
+            tossCustomerId: tc?.id ?? null,
+            refundableAmount: tc?.refundableAmount ?? null,
+        };
+    });
 
     return { rows };
 }

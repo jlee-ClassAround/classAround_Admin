@@ -10,12 +10,11 @@ import { dateFormat, formatPrice } from '@/utils/formats';
 
 import type { LecturePaymentDetailRow } from './actions';
 import { DetailDialog } from './_components/detail-dialog';
-import { RefundAction } from './_components/refund-action';
+import { RefundButton } from './_components/refund-button';
 import { getPaymentMethodToKr } from '../../lecture-payments/utils/get-enum-to-kr';
 import { ReceiptText } from 'lucide-react';
 
 function paymentStatusLabel(status: string): { label: string; className: string } {
-    // PaymentStatus enum 기준: READY / WAITING_FOR_DEPOSIT / WAITING_FOR_DIRECT_DEPOSIT / DONE / CANCELED / PARTIAL_CANCELED / FAILED
     switch (status) {
         case 'DONE':
             return { label: '결제완료', className: 'text-green-500 bg-green-500/10' };
@@ -134,8 +133,7 @@ export const columns: ColumnDef<LecturePaymentDetailRow>[] = [
             if (status === 'CANCELED') {
                 return <div className="text-xs text-muted-foreground flex justify-start">-</div>;
             }
-
-            return <RefundAction row={row as any} />;
+            return <RefundButton row={row} />;
         },
     },
     {
@@ -144,7 +142,6 @@ export const columns: ColumnDef<LecturePaymentDetailRow>[] = [
         header: ({ column }) => <DataTableColumnHeader column={column} title="상세" />,
         cell: ({ row }) => {
             const payment = row.original;
-
             if (payment.receiptUrl) {
                 return (
                     <a href={payment.receiptUrl} target="_blank" className="p-1 hover:text-primary">
@@ -152,7 +149,6 @@ export const columns: ColumnDef<LecturePaymentDetailRow>[] = [
                     </a>
                 );
             }
-
             return null;
         },
     },

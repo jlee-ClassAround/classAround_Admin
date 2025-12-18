@@ -25,7 +25,6 @@ export default async function AdminLecturePaymentsPageDetail({ params, searchPar
         select: { title: true },
     });
 
-    // ✅ stats(통계) / payments(목록) 각각 올바른 함수에서 받기
     const [stats, payments] = await Promise.all([
         getLecturePaymentStatsByOrder({ courseId }),
         getLecturePaymentsByOrder({ courseId, status, type, search }),
