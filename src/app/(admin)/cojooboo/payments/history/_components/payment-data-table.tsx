@@ -14,6 +14,7 @@ import { CourseFilter, CourseOption } from './course-filter';
 import { Input } from '@/components/ui/input';
 import { SearchInput } from './search-input';
 import { AdminDataTable } from '@/components/admin-data-table';
+import { TossSyncButton } from '@/components/admin/toss-sync-button';
 
 interface PaymentDataTableProps {
     data: any[];

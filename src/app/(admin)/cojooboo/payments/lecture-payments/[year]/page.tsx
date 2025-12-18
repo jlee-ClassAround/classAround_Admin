@@ -7,6 +7,8 @@ import { getAdminCourses } from '../../../_actions/courses/get-admin-courses';
 import { PaymentStats } from '../../history/_components/payment-stats';
 import { PaymentDataTable } from '../_components';
 import { columns } from './columns';
+import { getPaymentStats } from '../_actions/get-payments-stats';
+import { getCoursesWithCustomer } from './actions';
 
 interface PageProps {
     params: Promise<{
@@ -47,21 +49,23 @@ export default async function AdminLecturePaymentsPage({ params, searchParams }:
     //     getDailyStats({ dateRange, status, type, courseId, search }),
     //     getAdminCourses(),
     // ]);
-
-    // const data = await getCoursesWithCustomer();
+    const [stats] = await Promise.all([
+        getPaymentStats({ dateRange, status, type, courseId, search }),
+    ]);
+    const data = await getCoursesWithCustomer();
 
     return (
         <div className="space-y-8">
             <h1 className="text-3xl font-bold">{year}년 결제 내역</h1>
-            {/* <PaymentStats stats={stats} /> */}
+            <PaymentStats stats={stats} />
 
             <Card className="p-6">
-                {/* <PaymentDataTable
+                <PaymentDataTable
                     columns={columns}
                     data={data}
                     searchKey="title"
                     searchPlaceholder="강의명을 검색해보세요."
-                /> */}
+                />
             </Card>
         </div>
     );

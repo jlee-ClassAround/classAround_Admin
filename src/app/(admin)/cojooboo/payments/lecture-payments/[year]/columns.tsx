@@ -35,7 +35,7 @@ export const columns: ColumnDef<Course>[] = [
             return (
                 <div className="max-w-[300px] truncate">
                     <Link
-                        href={`/cojooboo/payments/lecture-payments/${course.id}`}
+                        href={`/cojooboo/payments/lecture-payments-detail/${course.id}`}
                         className="hover:text-primary"
                     >
                         {course.title}
