@@ -6,62 +6,39 @@ import { getLecturePaymentsByOrder } from './actions';
 import { cojoobooDb } from '@/lib/cojoobooDb';
 
 interface PageProps {
-    params: Promise<{
-        id: string;
-    }>;
+    params: Promise<{ id: string }>;
     searchParams: Promise<{
         status?: string;
         type?: string;
         search?: string;
     }>;
 }
+
 export default async function AdminLecturePaymentsPageDetail({ params, searchParams }: PageProps) {
     const { id } = await params;
     const { status, type, search } = await searchParams;
 
     const courseId = id;
+
     const course = await cojoobooDb.course.findFirst({
-        where: {
-            id: courseId,
-        },
-        select: {
-            title: true,
-        },
+        where: { id: courseId },
+        select: { title: true },
     });
 
-    // const [stats, payments, dailyStats, courses] = await Promise.all([
-    //     getLecturePaymentStats({ courseId }),
-    //     getLecturePayments({ dateRange, status, type, courseId, search }),
-    //     getDailyStats({ dateRange, status, type, courseId, search }),
-    //     getAdminDetailCourses({ courseId }),
-    // ]);
-
-    // const courseOptions = courses.map((course) => ({
-    //     id: course.id,
-    //     title: course.title,
-    //     freeCourseId: course.freeCourseId || null,
-    // }));
-
-    // const {
-    //     payments: mergedPayments,
-    //     trackingStats,
-    //     newUserStats,
-    //     trackingSummary,
-    // } = await getTrackingMergedPayments({
-    //     freeCourseId: courseOptions[0].freeCourseId,
-    //     courseId,
-    //     payments,
-    // });
-    const [stats] = await Promise.all([getLecturePaymentStatsByOrder({ courseId })]);
-    const { rows } = await getLecturePaymentsByOrder({ courseId });
+    // ✅ stats(통계) / payments(목록) 각각 올바른 함수에서 받기
+    const [stats, payments] = await Promise.all([
+        getLecturePaymentStatsByOrder({ courseId }),
+        getLecturePaymentsByOrder({ courseId, status, type, search }),
+    ]);
 
     return (
         <div className="space-y-8">
             <h1 className="text-3xl font-bold">{course?.title}</h1>
+
             <PaymentStats stats={stats} />
 
             <Card className="p-6">
-                <LecturePaymentDetailDataTable data={rows} />
+                <LecturePaymentDetailDataTable data={payments.rows} />
             </Card>
         </div>
     );

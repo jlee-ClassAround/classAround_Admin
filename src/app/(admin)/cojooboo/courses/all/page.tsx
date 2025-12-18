@@ -7,6 +7,7 @@ import { AdminDataTable } from '@/components/admin-data-table';
 
 export default async function CoursesAll() {
     const courses = await cojoobooDb.course.findMany({
+        where: { parentId: null },
         orderBy: {
             createdAt: 'desc',
         },

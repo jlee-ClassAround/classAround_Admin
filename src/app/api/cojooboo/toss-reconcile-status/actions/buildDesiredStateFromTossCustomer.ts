@@ -1,5 +1,20 @@
-import type { Prisma, TossCustomer, Order, Payment } from '@/generated/cojooboo';
-import { OrderStatus, PaymentMethod, PaymentStatus } from '@/generated/cojooboo';
+import type { Prisma } from '@/generated/cojooboo';
+import { OrderStatus, PaymentStatus } from '@/generated/cojooboo';
+
+type TossCustomerLike = {
+    id: string;
+    // 너 프로젝트 TossCustomer에 있는 필드들 중 “있는 것만” 쓰면 됨
+    paymentKey?: string | null;
+    paymentStatus?: string | null; // 또는 status
+    status?: string | null;
+
+    amount?: number | null;
+
+    // ✅ 여기 중요: 너 TossCustomer에 실제로 저장돼있는 환불 관련 필드명에 맞춰서 1개 이상 살아있게 하면 됨
+    cancelAmount?: number | null;
+    canceledAt?: string | Date | null;
+    cancelReason?: string | null;
+};
 
 type DesiredState = {
     shouldUpdate: boolean;
@@ -14,115 +29,105 @@ function upper(v: unknown): string {
         .toUpperCase();
 }
 
-function toPaymentMethod(v: unknown): PaymentMethod | null {
-    const m = upper(v);
-    if (m === 'CARD') return PaymentMethod.CARD;
-    if (m === 'TRANSFER') return PaymentMethod.TRANSFER;
-    if (m === 'VIRTUAL_ACCOUNT') return PaymentMethod.VIRTUAL_ACCOUNT;
-    if (m === 'DIRECT_DEPOSIT') return PaymentMethod.DIRECT_DEPOSIT;
-    if (m === 'EASY_PAY') return PaymentMethod.EASY_PAY;
-    return null;
+function toDate(v: unknown): Date | undefined {
+    if (!v) return undefined;
+    const d = v instanceof Date ? v : new Date(String(v));
+    return Number.isNaN(d.getTime()) ? undefined : d;
+}
+
+function n(v: unknown): number | undefined {
+    const num = typeof v === 'number' ? v : Number(v);
+    return Number.isFinite(num) ? num : undefined;
 }
 
 export function buildDesiredStateFromTossCustomer(
-    tc: TossCustomer,
-    order: Order,
-    payment: Payment
+    tc: TossCustomerLike,
+    order: { status: OrderStatus },
+    payment: {
+        paymentStatus: PaymentStatus;
+        amount: number;
+        cancelAmount: number | null;
+        canceledAt: Date | null;
+        cancelReason: string | null;
+    }
 ): DesiredState {
     const orderPatch: Prisma.OrderUpdateInput = {};
     const paymentPatch: Prisma.PaymentUpdateInput = {};
 
-    // ---- 메타 동기화(값이 다를 때만) ----
-    if (payment.tossPaymentKey !== tc.paymentKey) paymentPatch.tossPaymentKey = tc.paymentKey;
+    const tcStatus = upper(tc.paymentStatus ?? tc.status);
 
-    const pm = toPaymentMethod(tc.paymentMethod);
-    if (pm && payment.paymentMethod !== pm) paymentPatch.paymentMethod = pm;
+    // ----------------------------
+    // 1) 상태 보정 (기존 너 로직이 있으면 여기를 거기에 맞춰 커스터마이즈)
+    // ----------------------------
+    let nextPaymentStatus: PaymentStatus | undefined;
+    let nextOrderStatus: OrderStatus | undefined;
 
-    if (payment.isTaxFree !== tc.isTaxFree) paymentPatch.isTaxFree = tc.isTaxFree;
+    if (tcStatus === 'DONE' || tcStatus === 'PAID' || tcStatus === 'COMPLETED') {
+        nextPaymentStatus = PaymentStatus.DONE;
+        // 주문 상태는 너 프로젝트 정의에 맞춰(예: PAID)
+        nextOrderStatus = OrderStatus.PAID;
+    } else if (tcStatus === 'CANCELED' || tcStatus === 'CANCELLED') {
+        nextPaymentStatus = PaymentStatus.CANCELED;
+        nextOrderStatus = OrderStatus.REFUNDED;
+    } else if (tcStatus === 'PARTIAL_CANCELED' || tcStatus === 'PARTIAL_CANCELLED') {
+        nextPaymentStatus = PaymentStatus.PARTIAL_CANCELED;
+        nextOrderStatus = OrderStatus.PARTIAL_REFUNDED;
+    }
 
-    if ((payment.cancelAmount ?? null) !== (tc.cancelAmount ?? null))
-        paymentPatch.cancelAmount = tc.cancelAmount;
-    if ((payment.refundableAmount ?? null) !== (tc.refundableAmount ?? null))
-        paymentPatch.refundableAmount = tc.refundableAmount;
+    if (nextPaymentStatus && payment.paymentStatus !== nextPaymentStatus) {
+        paymentPatch.paymentStatus = nextPaymentStatus;
+    }
+    if (nextOrderStatus && order.status !== nextOrderStatus) {
+        orderPatch.status = nextOrderStatus;
+    }
 
-    if ((payment.canceledAt ?? null) !== (tc.canceledAt ?? null))
-        paymentPatch.canceledAt = tc.canceledAt;
-    if ((payment.receiptUrl ?? null) !== (tc.receiptUrl ?? null))
-        paymentPatch.receiptUrl = tc.receiptUrl;
+    // ----------------------------
+    // 2) ✅ 환불 금액/시간/사유 보정 (핵심)
+    // ----------------------------
+    const isCanceled =
+        nextPaymentStatus === PaymentStatus.CANCELED ||
+        nextPaymentStatus === PaymentStatus.PARTIAL_CANCELED ||
+        paymentPatch.paymentStatus === PaymentStatus.CANCELED ||
+        paymentPatch.paymentStatus === PaymentStatus.PARTIAL_CANCELED ||
+        payment.paymentStatus === PaymentStatus.CANCELED ||
+        payment.paymentStatus === PaymentStatus.PARTIAL_CANCELED;
 
-    if ((payment.mId ?? null) !== (tc.mId ?? null)) paymentPatch.mId = tc.mId;
-    if ((payment.tossSecretKey ?? null) !== (tc.tossSecretKey ?? null))
-        paymentPatch.tossSecretKey = tc.tossSecretKey;
+    if (isCanceled) {
+        // tc에서 환불 금액을 가져올 수 있으면 그걸 우선 사용
+        const tcCancelAmount = n(tc.cancelAmount);
 
-    // ---- 상태 매핑 ----
-    const status = upper(tc.paymentStatus);
-    const cancelAmount = tc.cancelAmount ?? 0;
-    const finalPrice = tc.finalPrice;
-    const hasCancel = Boolean(tc.canceledAt) || cancelAmount > 0;
+        // ✅ full cancel인데 tc에 cancelAmount가 없다면 “승인금액=환불금액”으로 백필
+        const fallbackCancelAmount =
+            (paymentPatch.paymentStatus ?? payment.paymentStatus) === PaymentStatus.CANCELED
+                ? payment.amount
+                : undefined;
 
-    // ✅ REFUNDED를 최우선으로 명시 처리
-    if (status === 'REFUNDED') {
-        if (payment.paymentStatus !== PaymentStatus.CANCELED)
-            paymentPatch.paymentStatus = PaymentStatus.CANCELED;
-        if (order.status !== OrderStatus.REFUNDED) orderPatch.status = OrderStatus.REFUNDED;
-    } else if (
-        status === 'COMPLETED' ||
-        status === 'DONE' ||
-        status === 'PAID' ||
-        status === 'SUCCESS'
-    ) {
-        if (!hasCancel) {
-            if (payment.paymentStatus !== PaymentStatus.DONE)
-                paymentPatch.paymentStatus = PaymentStatus.DONE;
-            if (order.status !== OrderStatus.PAID) orderPatch.status = OrderStatus.PAID;
-        } else {
-            // COMPLETED인데 cancelAmount/canceledAt이 있으면 취소/부분취소로 본다
-            if (cancelAmount >= finalPrice || Boolean(tc.canceledAt)) {
-                if (payment.paymentStatus !== PaymentStatus.CANCELED)
-                    paymentPatch.paymentStatus = PaymentStatus.CANCELED;
-                if (order.status !== OrderStatus.REFUNDED) orderPatch.status = OrderStatus.REFUNDED;
-            } else {
-                if (payment.paymentStatus !== PaymentStatus.PARTIAL_CANCELED)
-                    paymentPatch.paymentStatus = PaymentStatus.PARTIAL_CANCELED;
-                if (order.status !== OrderStatus.PARTIAL_REFUNDED)
-                    orderPatch.status = OrderStatus.PARTIAL_REFUNDED;
+        const desiredCancelAmount = tcCancelAmount ?? fallbackCancelAmount;
+
+        // cancelAmount가 null이면 통계에서 빠지니까, 여기서 최소한 0/amount라도 채워주자
+        if (typeof desiredCancelAmount === 'number') {
+            const current = payment.cancelAmount ?? null;
+            if (current !== desiredCancelAmount) {
+                paymentPatch.cancelAmount = desiredCancelAmount;
             }
         }
-    } else if (status === 'FAILED') {
-        if (payment.paymentStatus !== PaymentStatus.FAILED)
-            paymentPatch.paymentStatus = PaymentStatus.FAILED;
-        if (order.status !== OrderStatus.FAILED) orderPatch.status = OrderStatus.FAILED;
-    } else if (status === 'WAITING_FOR_DEPOSIT') {
-        if (payment.paymentStatus !== PaymentStatus.WAITING_FOR_DEPOSIT)
-            paymentPatch.paymentStatus = PaymentStatus.WAITING_FOR_DEPOSIT;
-        if (order.status !== OrderStatus.PENDING) orderPatch.status = OrderStatus.PENDING;
-    } else if (status === 'READY') {
-        if (payment.paymentStatus !== PaymentStatus.READY)
-            paymentPatch.paymentStatus = PaymentStatus.READY;
-        if (order.status !== OrderStatus.PENDING) orderPatch.status = OrderStatus.PENDING;
-    } else if (status === 'CANCELED' || status === 'CANCELLED') {
-        if (payment.paymentStatus !== PaymentStatus.CANCELED)
-            paymentPatch.paymentStatus = PaymentStatus.CANCELED;
-        if (order.status !== OrderStatus.CANCELED) orderPatch.status = OrderStatus.CANCELED;
-    } else if (hasCancel) {
-        // 상태 문자열이 뭐든 cancel 정보가 있으면 환불/부분환불로 맞춤
-        if (cancelAmount >= finalPrice || Boolean(tc.canceledAt)) {
-            if (payment.paymentStatus !== PaymentStatus.CANCELED)
-                paymentPatch.paymentStatus = PaymentStatus.CANCELED;
-            if (order.status !== OrderStatus.REFUNDED) orderPatch.status = OrderStatus.REFUNDED;
-        } else {
-            if (payment.paymentStatus !== PaymentStatus.PARTIAL_CANCELED)
-                paymentPatch.paymentStatus = PaymentStatus.PARTIAL_CANCELED;
-            if (order.status !== OrderStatus.PARTIAL_REFUNDED)
-                orderPatch.status = OrderStatus.PARTIAL_REFUNDED;
+
+        const desiredCanceledAt = toDate(tc.canceledAt);
+        if (desiredCanceledAt && !payment.canceledAt) {
+            paymentPatch.canceledAt = desiredCanceledAt;
         }
-    } else {
-        // 알 수 없는 상태면 상태는 건드리지 않음
+
+        if (tc.cancelReason && !payment.cancelReason) {
+            paymentPatch.cancelReason = tc.cancelReason;
+        }
     }
 
     const shouldUpdate = Object.keys(orderPatch).length > 0 || Object.keys(paymentPatch).length > 0;
 
-    return shouldUpdate
-        ? { shouldUpdate: true, orderPatch, paymentPatch }
-        : { shouldUpdate: false, reason: 'No changes', orderPatch: {}, paymentPatch: {} };
+    return {
+        shouldUpdate,
+        reason: shouldUpdate ? undefined : 'No changes',
+        orderPatch,
+        paymentPatch,
+    };
 }

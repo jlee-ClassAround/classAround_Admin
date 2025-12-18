@@ -14,6 +14,7 @@ export default async function EnrollPage({ searchParams }: Props) {
     const courses = await cojoobooDb.course.findMany({
         where: {
             isPublished: true,
+            parentId: null,
         },
         orderBy: {
             createdAt: 'desc',

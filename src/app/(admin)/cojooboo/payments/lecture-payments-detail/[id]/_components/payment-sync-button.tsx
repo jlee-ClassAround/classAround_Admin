@@ -18,22 +18,11 @@ type ReconcileApiResponse = {
 };
 
 export interface TossCourseRepairButtonProps {
-    /** 필수: 대상 강의 courseId */
     courseId: string;
-
-    /** sync 배치 사이즈(1~200) */
     syncLimit?: number;
-
-    /** reconcile 배치 사이즈(1~200) */
     reconcileLimit?: number;
-
-    /** true면 reconcile은 미리보기만(실제 update 안 함) */
     dryRun?: boolean;
-
-    /** 버튼 라벨 */
     label?: string;
-
-    /** className */
     className?: string;
 }
 

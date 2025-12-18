@@ -5,19 +5,16 @@ import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
 import Link from 'next/link';
 
-// import { CourseOption } from '../../../toss-customers/_components/course-filter';
-
 import { DetailDataTable } from './lecture-payment-detail-table';
 
 import { columns } from '../columns';
 import { SearchInput } from './data-components/search-input';
 import { StatusFilter } from './data-components/status-filter';
 import { TypeFilter } from './data-components/type-filter';
-import { CourseFilter } from './data-components/course-filter';
 
 import { TossCourseRepairButton } from './payment-sync-button';
 import { LecturePaymentDetailRow } from '../actions.js';
-import { downloadCSV } from '@/lib/csv.js';
+import { downloadLecturePaymentsXLSX } from '../_actions/download-xlsx';
 
 interface LecturePaymentDetailDataTableProps {
     data: LecturePaymentDetailRow[];
@@ -64,7 +61,7 @@ LecturePaymentDetailDataTableProps) {
      -------------------------------- */
     const handleDownloadCSV = () => {
         const filename = `payment-history-${new Date().toISOString().split('T')[0]}`;
-        // downloadCSV(filteredData, filename);
+        downloadLecturePaymentsXLSX(filteredData, filename);
     };
 
     /** -------------------------------
@@ -101,27 +98,18 @@ LecturePaymentDetailDataTableProps) {
                 <TypeFilter value={type} onChange={setType} />
                 <StatusFilter value={status} onChange={setStatus} />
 
-                {/* COURSE 타입일 때만 course 필터 동작 */}
-                {/* {type === 'COURSE' && (
-                    <CourseFilter
-                        courseOptions={courseOptions}
-                        value={course}
-                        onChange={setCourse}
-                    />
-                )} */}
-
                 <Button variant="outline" onClick={resetFilters}>
                     필터 삭제
                 </Button>
 
                 <Button onClick={handleDownloadCSV} variant="outline" size="sm" className="ml-auto">
                     <Download className="h-4 w-4 mr-2" />
-                    CSV 내보내기
+                    XLSX 내보내기
                 </Button>
             </div>
 
             {/* 데이터 테이블 */}
-            <DetailDataTable columns={columns} data={filteredData} noSearch defaultPageSize={100} />
+            <DetailDataTable columns={columns} data={filteredData} noSearch defaultPageSize={50} />
         </div>
     );
 }

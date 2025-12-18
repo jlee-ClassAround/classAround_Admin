@@ -125,21 +125,16 @@ export const columns: ColumnDef<LecturePaymentDetailRow>[] = [
             <div className="max-w-[140px] truncate text-xs">{String(row.original.orderStatus)}</div>
         ),
     },
-    // {
-    //     accessorKey: 'orderNumber',
-    //     meta: { label: '주문번호' },
-    //     header: ({ column }) => <DataTableColumnHeader column={column} title="주문번호" />,
-    //     cell: ({ row }) => (
-    //         <div className="max-w-[160px] truncate text-xs">{row.original.orderNumber}</div>
-    //     ),
-    // },
     {
         id: 'actions',
         meta: { label: '처리' },
         header: ({ column }) => <DataTableColumnHeader column={column} title="처리" />,
         cell: ({ row }) => {
-            // RefundAction이 아직 ExtendedTossCustomer 기준 타입이면 여기서 TS 에러 날 수 있어서
-            // 우선 캐스팅으로 막아둠(RefundAction 파일도 LecturePaymentDetailRow 기준으로 바꾸면 캐스팅 제거 가능)
+            const status = String(row.original.paymentStatus ?? '');
+            if (status === 'CANCELED') {
+                return <div className="text-xs text-muted-foreground flex justify-start">-</div>;
+            }
+
             return <RefundAction row={row as any} />;
         },
     },

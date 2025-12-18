@@ -16,7 +16,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
-import {
+import type {
     Category,
     Course,
     CourseOption,
@@ -26,7 +26,7 @@ import {
 } from '@/generated/cojooboo';
 import { CircleX, ImagePlus, ImageUp, Loader2 } from 'lucide-react';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
+import * as React from 'react';
 import { useForm } from 'react-hook-form';
 
 import { Badge } from '@/components/ui/badge';
@@ -39,7 +39,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { COURSE_DESC_MESSAGE, COURSE_TITLE_MESSAGE } from '@/constants/validate-message';
-import { courseSchema, CourseSchema } from '@/lib/cojooboo/schemas';
+import { courseSchema, type CourseSchema } from '@/lib/cojooboo/schemas';
 import { useDetailImagesStore } from '@/store/use-detail-images';
 import { useSelectTeachers } from '@/store/use-select-teachers';
 import { useQuery } from '@tanstack/react-query';
@@ -54,6 +54,12 @@ import { TeacherCombobox } from './teacher-combobox';
 import { DatePickerComponent } from '@/components/global/date-picker-component';
 import { FileDropzone } from '@/components/cojooboo/file-dropzone';
 import { updateCourseAction } from '../../actions/courses';
+import { getCourses } from '../actions/get-courses';
+
+type ParentCourseOption = {
+    id: string;
+    title: string;
+};
 
 interface Props {
     course: Course & {
@@ -69,15 +75,16 @@ interface Props {
 
 export function CourseForm({ course, categories, teachers, productBadges }: Props) {
     const router = useRouter();
-    const [isImageEdit, setIsImageEdit] = useState(false);
+    const [isImageEdit, setIsImageEdit] = React.useState<boolean>(false);
+
     const { images, setImages } = useDetailImagesStore();
     const { selectedTeachers, setSelectedTeachers } = useSelectTeachers();
 
-    useEffect(() => {
+    React.useEffect(() => {
         setImages(course.detailImages);
     }, [course.detailImages, setImages]);
 
-    useEffect(() => {
+    React.useEffect(() => {
         setSelectedTeachers(course.teachers);
     }, [course.teachers, setSelectedTeachers]);
 
@@ -86,10 +93,32 @@ export function CourseForm({ course, categories, teachers, productBadges }: Prop
         queryFn: () => getOptions(course.id),
     });
 
+    const { data: parentCourses = [], isLoading: isLoadingParents } = useQuery<
+        ParentCourseOption[]
+    >({
+        queryKey: ['parentCourses', course.id],
+        queryFn: async () => {
+            const list = await getCourses(); // ✅ server action 호출
+            return list.filter((c) => c.id !== course.id); // 자기 자신 제외
+        },
+        staleTime: 60_000,
+    });
+
+    const parentCourseOptions = React.useMemo(
+        () =>
+            parentCourses.map((c) => ({
+                label: c.title,
+                value: c.id,
+            })),
+        [parentCourses]
+    );
     const form = useForm<CourseSchema>({
         resolver: zodResolver(courseSchema),
         defaultValues: {
             ...course,
+            // ✅ null -> undefined 정리 (react-hook-form + zod에서 제일 흔한 에러 포인트)
+            parentId: (course as any).parentId ?? undefined,
+
             description: course.description || '',
             thumbnail: course.thumbnail || undefined,
             originalPrice: course.originalPrice ?? undefined,
@@ -112,10 +141,12 @@ export function CourseForm({ course, categories, teachers, productBadges }: Prop
                 return;
             }
 
-            const processedValues = {
+            const processedValues: CourseSchema = {
                 ...values,
                 originalPrice: values.originalPrice ?? undefined,
                 discountedPrice: values.discountedPrice ?? undefined,
+                // ✅ 혹시 null로 들어오면 undefined로 정리
+                parentId: (values as any).parentId ?? undefined,
             };
 
             const result = await updateCourseAction(
@@ -142,16 +173,13 @@ export function CourseForm({ course, categories, teachers, productBadges }: Prop
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                {/* 양식 본문 */}
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                    {/* 양식 좌측 섹션 */}
                     <div className="space-y-4 md:col-span-3">
                         <Card className="p-6 space-y-5">
                             <div className="flex items-center border-b pb-4">
                                 <h3 className="font-medium text-lg">강의 기본 정보</h3>
                             </div>
 
-                            {/* 강의 제목 */}
                             <FormField
                                 name="title"
                                 control={form.control}
@@ -170,7 +198,6 @@ export function CourseForm({ course, categories, teachers, productBadges }: Prop
                                 )}
                             />
 
-                            {/* 강의 설명 */}
                             <FormField
                                 name="description"
                                 control={form.control}
@@ -190,10 +217,8 @@ export function CourseForm({ course, categories, teachers, productBadges }: Prop
                                 )}
                             />
 
-                            {/* 상세페이지 이미지 */}
                             <DetailImageUpload disabled={isSubmitting} />
 
-                            {/* 강의 수강 가능 기간 */}
                             <FormField
                                 name="accessDuration"
                                 control={form.control}
@@ -220,7 +245,6 @@ export function CourseForm({ course, categories, teachers, productBadges }: Prop
                         </Card>
 
                         <Card className="p-6 space-y-5">
-                            {/* 할부 표기 설정 */}
                             <FormField
                                 name="showInInstallment"
                                 control={form.control}
@@ -245,7 +269,6 @@ export function CourseForm({ course, categories, teachers, productBadges }: Prop
                                 )}
                             />
 
-                            {/* 상품 타입 */}
                             <FormField
                                 name="productType"
                                 control={form.control}
@@ -278,7 +301,6 @@ export function CourseForm({ course, categories, teachers, productBadges }: Prop
 
                             {form.watch('productType') === 'SIMPLE' ? (
                                 <>
-                                    {/* 원가 */}
                                     <FormField
                                         name="originalPrice"
                                         control={form.control}
@@ -299,7 +321,6 @@ export function CourseForm({ course, categories, teachers, productBadges }: Prop
                                         )}
                                     />
 
-                                    {/* 할인가 */}
                                     <FormField
                                         name="discountedPrice"
                                         control={form.control}
@@ -320,7 +341,6 @@ export function CourseForm({ course, categories, teachers, productBadges }: Prop
                                         )}
                                     />
 
-                                    {/* 세금 설정 */}
                                     <FormField
                                         name="isTaxFree"
                                         control={form.control}
@@ -348,13 +368,38 @@ export function CourseForm({ course, categories, teachers, productBadges }: Prop
                                 <OptionAction courseId={course.id} />
                             )}
                         </Card>
+                        {/* ✅ 부모강의 선택 */}
+                        <Card className="p-6 space-y-6">
+                            <FormField
+                                name="parentId"
+                                control={form.control}
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>메인강의 선택</FormLabel>
+                                        <FormControl>
+                                            <Combobox
+                                                options={parentCourseOptions}
+                                                disabled={isSubmitting || isLoadingParents}
+                                                value={field.value ?? null}
+                                                onChange={(value: string | null) => {
+                                                    // Combobox에서 null(선택 해제)로 올 수 있으니 undefined로 정리
+                                                    field.onChange(value ?? undefined);
+                                                }}
+                                            />
+                                        </FormControl>
+                                        <FormDescription>
+                                            (선택) 이 강의를 어떤 메인 강의에 묶을지 선택합니다.
+                                        </FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </Card>
                     </div>
 
-                    {/* 양식 우측 섹션 */}
                     <div className="md:col-span-2 space-y-4">
                         <Card className="p-6 space-y-6">
                             <div className="flex items-center gap-4 justify-end border-b pb-5">
-                                {/* 강의 공개 설정 */}
                                 <FormField
                                     name="isPublished"
                                     control={form.control}
@@ -379,7 +424,6 @@ export function CourseForm({ course, categories, teachers, productBadges }: Prop
                                     )}
                                 />
 
-                                {/* 저장하기 */}
                                 <Button type="submit" disabled={isSubmitting}>
                                     {isSubmitting ? (
                                         <>
@@ -391,7 +435,6 @@ export function CourseForm({ course, categories, teachers, productBadges }: Prop
                                 </Button>
                             </div>
 
-                            {/* 대표이미지 */}
                             <FormField
                                 name="thumbnail"
                                 control={form.control}
@@ -461,7 +504,6 @@ export function CourseForm({ course, categories, teachers, productBadges }: Prop
                                 )}
                             />
 
-                            {/* 카테고리 */}
                             <FormField
                                 name="categoryId"
                                 control={form.control}
@@ -483,7 +525,6 @@ export function CourseForm({ course, categories, teachers, productBadges }: Prop
                                 )}
                             />
 
-                            {/* 강사 선택 */}
                             <div>
                                 <div className="text-sm font-medium mb-2">강사 선택</div>
                                 <TeacherCombobox
@@ -495,7 +536,6 @@ export function CourseForm({ course, categories, teachers, productBadges }: Prop
                                 />
                             </div>
 
-                            {/* 배지 선택 */}
                             <FormField
                                 name="productBadgeIds"
                                 control={form.control}
@@ -543,7 +583,6 @@ export function CourseForm({ course, categories, teachers, productBadges }: Prop
                         </Card>
 
                         <Card className="p-6 space-y-6">
-                            {/* 신청 마감 설정 */}
                             <FormField
                                 name="isUpcoming"
                                 control={form.control}
@@ -567,7 +606,6 @@ export function CourseForm({ course, categories, teachers, productBadges }: Prop
                                 )}
                             />
 
-                            {/* 마감일 선택 */}
                             <FormField
                                 name="endDate"
                                 control={form.control}
@@ -645,7 +683,6 @@ export function CourseForm({ course, categories, teachers, productBadges }: Prop
                         </Card>
 
                         <Card className="p-6 space-y-6">
-                            {/* 숨김 설정 */}
                             <FormField
                                 name="isHidden"
                                 control={form.control}

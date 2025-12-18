@@ -33,6 +33,31 @@ function clampInt(value: number, min: number, max: number): number {
     return Math.max(min, Math.min(max, value));
 }
 
+/**
+ * ✅ courseId가 들어오면:
+ * - 만약 그게 자식 강의면: parentId를 root로 잡고 (부모 + 형제들)까지 포함
+ * - 만약 그게 부모 강의면: (부모 + 자식들) 포함
+ * - 못찾으면: 그냥 courseId 단일로 처리
+ */
+async function getScopedCourseIds(courseId: string): Promise<string[]> {
+    const base = await cojoobooDb.course.findUnique({
+        where: { id: courseId },
+        select: { id: true, parentId: true },
+    });
+
+    const rootId = base?.parentId ?? base?.id ?? courseId;
+
+    const scoped = await cojoobooDb.course.findMany({
+        where: {
+            OR: [{ id: rootId }, { parentId: rootId }],
+        },
+        select: { id: true },
+    });
+
+    const ids = scoped.map((c) => c.id);
+    return ids.length > 0 ? ids : [courseId];
+}
+
 export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>> {
     const url = new URL(req.url);
 
@@ -42,8 +67,11 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
     const dryRun = (url.searchParams.get('dryRun') ?? '1') === '1';
 
     try {
+        // ✅ 여기서 부모/자식 스코프 courseIds 확장
+        const scopedCourseIds = courseId ? await getScopedCourseIds(courseId) : null;
+
         const tossCustomers = await cojoobooDb.tossCustomer.findMany({
-            where: courseId ? { courseId } : undefined,
+            where: scopedCourseIds ? { courseId: { in: scopedCourseIds } } : undefined,
             orderBy: { id: 'asc' },
             take: limit + 1,
             ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
@@ -77,7 +105,6 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
                 });
 
                 if (!paymentWithOrder) {
-                    // payment row 자체가 없으면 Order 업데이트도 위험하니 스킵(원하면 orderId로 fallback 가능)
                     skippedCount += 1;
                     skipped.push({
                         tossCustomerId: tc.id,

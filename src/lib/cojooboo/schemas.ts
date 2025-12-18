@@ -19,14 +19,6 @@ export const chapterSchema = z.object({
 export type ChapterSchema = z.infer<typeof chapterSchema>;
 
 // 강의 스키마
-export const partialCourseSchema = z.object({
-    title: z.string().min(1, '타이틀을 입력하세요.'),
-    originalPrice: z.coerce.number().min(0, '가격은 0 이상이어야 합니다.'),
-    isHidden: z.boolean().default(false),
-});
-
-export type PartialCourseSchema = z.infer<typeof partialCourseSchema>;
-
 export const courseSchema = z
     .object({
         title: z.string().min(1, '제목을 입력해주세요.'),
@@ -39,6 +31,7 @@ export const courseSchema = z
         accessDuration: z.coerce.number().optional(),
 
         productType: z.enum(['SIMPLE', 'OPTION']).default('SIMPLE'),
+        parentId: z.string().optional(),
 
         originalPrice: z.coerce.number().optional(),
         discountedPrice: z.preprocess(

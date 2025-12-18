@@ -4,13 +4,13 @@ import { cojoobooDb } from '@/lib/cojoobooDb';
 import { Prisma, OrderStatus, PaymentStatus } from '@/generated/cojooboo';
 
 export type LecturePaymentStats = {
-    totalOrders: number; // 전체 주문 수
-    totalPaymentAmount: number; // 총 결제 금액(환불 포함: DONE/CANCELED/PARTIAL_CANCELED 결제금액 합)
-    totalRefundAmount: number; // 총 환불 금액(Payment.cancelAmount 합)
-    finalPaymentAmount: number; // 최종 매출 = 결제 - 환불
-    couponUsageCount: number; // 쿠폰 사용 주문 수(usedCoupon 존재)
-    totalDiscountAmount: number; // 쿠폰 할인 합(usedCoupon.couponAmount 합)
-    refundStatsCount: number; // 환불(부분환불 포함) 주문 수
+    totalOrders: number;
+    totalPaymentAmount: number;
+    totalRefundAmount: number;
+    finalPaymentAmount: number;
+    couponUsageCount: number;
+    totalDiscountAmount: number;
+    refundStatsCount: number;
 };
 
 type UsedCouponShape = {
@@ -19,9 +19,49 @@ type UsedCouponShape = {
     discountAmount?: number;
 };
 
+type Money = number;
+
 function safeNumber(v: unknown): number {
     const n = typeof v === 'number' ? v : Number(v);
     return Number.isFinite(n) ? n : 0;
+}
+
+function itemFinalPrice(item: { discountedPrice: number | null; originalPrice: number }): number {
+    return item.discountedPrice ?? item.originalPrice;
+}
+
+function allocateByRatio<T extends { key: string; price: number }>(
+    items: T[],
+    total: Money
+): Map<string, Money> {
+    const result = new Map<string, Money>();
+    if (items.length === 0) return result;
+
+    const prices = items.map((i) => i.price || 0);
+    const totalPrice = prices.reduce((a, b) => a + b, 0);
+
+    if (totalPrice <= 0 || total === 0) {
+        for (const it of items) result.set(it.key, 0);
+        return result;
+    }
+
+    const allocs: number[] = prices.map((p) => Math.floor((total * p) / totalPrice));
+    const used = allocs.reduce((a, b) => a + b, 0);
+    let remain = total - used;
+
+    let idx = 0;
+    while (remain > 0) {
+        allocs[idx] += 1;
+        remain -= 1;
+        idx = (idx + 1) % allocs.length;
+    }
+
+    for (let i = 0; i < items.length; i++) {
+        const k = items[i].key;
+        result.set(k, (result.get(k) ?? 0) + allocs[i]);
+    }
+
+    return result;
 }
 
 export async function getLecturePaymentStatsByOrder({
@@ -29,102 +69,110 @@ export async function getLecturePaymentStatsByOrder({
 }: {
     courseId: string;
 }): Promise<LecturePaymentStats> {
-    try {
-        // ✅ "이 강의를 포함한 주문" 필터
-        const whereOrderCourse: Prisma.OrderWhereInput = {
-            orderItems: {
-                some: {
-                    productCategory: 'COURSE',
-                    OR: [{ courseId }, { productId: courseId }],
+    const childCourses = await cojoobooDb.course.findMany({
+        where: { parentId: courseId },
+        select: { id: true },
+    });
+
+    const targetCourseIds: string[] = [courseId, ...childCourses.map((c) => c.id)];
+
+    const whereOrderCourse: Prisma.OrderWhereInput = {
+        orderItems: {
+            some: {
+                productCategory: 'COURSE',
+                OR: [{ courseId: { in: targetCourseIds } }, { productId: { in: targetCourseIds } }],
+            },
+        },
+    };
+
+    const totalOrders = await cojoobooDb.order.count({ where: whereOrderCourse });
+
+    const payments = await cojoobooDb.payment.findMany({
+        where: {
+            order: whereOrderCourse,
+            paymentStatus: {
+                in: [PaymentStatus.DONE, PaymentStatus.CANCELED, PaymentStatus.PARTIAL_CANCELED],
+            },
+        },
+        select: {
+            amount: true,
+            cancelAmount: true,
+            order: {
+                select: {
+                    orderItems: {
+                        where: { productCategory: 'COURSE' },
+                        select: {
+                            courseId: true,
+                            productId: true,
+                            originalPrice: true,
+                            discountedPrice: true,
+                        },
+                    },
                 },
             },
-        };
+        },
+    });
 
-        /** ------------------------------------------------------------------
-         * 1) 주문 수
-         * ------------------------------------------------------------------ */
-        const totalOrders = await cojoobooDb.order.count({
-            where: whereOrderCourse,
-        });
+    let allocatedPaidSum = 0;
+    let allocatedRefundSum = 0;
 
-        /** ------------------------------------------------------------------
-         * 2) 결제/환불 금액 (Payment 기준)
-         * - 결제금액: DONE / CANCELED / PARTIAL_CANCELED (실제로 승인된 결제들)
-         * - 환불금액: cancelAmount 합
-         * ------------------------------------------------------------------ */
-        const paymentAgg = await cojoobooDb.payment.aggregate({
-            where: {
-                order: whereOrderCourse,
-                paymentStatus: {
-                    in: [
-                        PaymentStatus.DONE,
-                        PaymentStatus.CANCELED,
-                        PaymentStatus.PARTIAL_CANCELED,
-                    ],
-                },
-            },
-            _sum: {
-                amount: true,
-                cancelAmount: true,
-            },
-        });
+    for (const p of payments) {
+        const items = p.order.orderItems
+            .map((it) => {
+                const resolvedCourseId = (it.courseId ?? it.productId) as string | null;
+                if (!resolvedCourseId) return null;
+                return {
+                    key: resolvedCourseId,
+                    price: itemFinalPrice({
+                        originalPrice: it.originalPrice,
+                        discountedPrice: it.discountedPrice,
+                    }),
+                };
+            })
+            .filter((v): v is { key: string; price: number } => Boolean(v?.key));
 
-        const totalPaymentAmount = paymentAgg._sum.amount ?? 0;
-        const totalRefundAmount = paymentAgg._sum.cancelAmount ?? 0;
-        const finalPaymentAmount = totalPaymentAmount - totalRefundAmount;
+        const paidAlloc = allocateByRatio(items, p.amount);
+        const refundAlloc = allocateByRatio(items, p.cancelAmount ?? 0);
 
-        /** ------------------------------------------------------------------
-         * 3) 환불 건수 (Order 기준: 주문 상태로 카운트)
-         * ------------------------------------------------------------------ */
-        const refundStatsCount = await cojoobooDb.order.count({
-            where: {
-                ...whereOrderCourse,
-                status: {
-                    in: [OrderStatus.REFUNDED, OrderStatus.PARTIAL_REFUNDED],
-                },
-            },
-        });
-
-        /** ------------------------------------------------------------------
-         * 4) 쿠폰 사용/할인 (Order.usedCoupon 기준)
-         * ------------------------------------------------------------------ */
-        const couponOrders = await cojoobooDb.order.findMany({
-            where: {
-                ...whereOrderCourse,
-                // ✅ Json? 필드는 null 비교 대신 JsonNullableFilter를 사용해야 함
-                // - AnyNull: DbNull(SQL NULL) + JsonNull(JSON null) 모두 포함
-                usedCoupon: { not: Prisma.AnyNull },
-            },
-            select: {
-                usedCoupon: true,
-            },
-        });
-
-        const couponUsageCount = couponOrders.length;
-
-        const totalDiscountAmount = couponOrders.reduce((sum: number, o) => {
-            const uc = o.usedCoupon as unknown as UsedCouponShape | null;
-            if (!uc) return sum;
-
-            const couponAmount =
-                safeNumber(uc.couponAmount) ||
-                safeNumber(uc.discountAmount) ||
-                safeNumber(uc.amount);
-
-            return sum + couponAmount;
-        }, 0);
-
-        return {
-            totalOrders,
-            totalPaymentAmount,
-            totalRefundAmount,
-            finalPaymentAmount,
-            couponUsageCount,
-            totalDiscountAmount,
-            refundStatsCount,
-        };
-    } catch (error) {
-        console.error('[GET_PAYMENT_STATS_BY_ORDER_ERROR]', error);
-        throw new Error('결제 통계를 불러오는데 실패했습니다.');
+        for (const cid of targetCourseIds) {
+            allocatedPaidSum += paidAlloc.get(cid) ?? 0;
+            allocatedRefundSum += refundAlloc.get(cid) ?? 0;
+        }
     }
+
+    const netAmount = allocatedPaidSum - allocatedRefundSum;
+
+    const refundStatsCount = await cojoobooDb.order.count({
+        where: {
+            ...whereOrderCourse,
+            status: { in: [OrderStatus.REFUNDED, OrderStatus.PARTIAL_REFUNDED] },
+        },
+    });
+
+    const couponOrders = await cojoobooDb.order.findMany({
+        where: { ...whereOrderCourse, usedCoupon: { not: Prisma.AnyNull } },
+        select: { usedCoupon: true },
+    });
+
+    const couponUsageCount = couponOrders.length;
+
+    const totalDiscountAmount = couponOrders.reduce((sum: number, o) => {
+        const uc = o.usedCoupon as unknown as UsedCouponShape | null;
+        if (!uc) return sum;
+
+        const couponAmount =
+            safeNumber(uc.couponAmount) || safeNumber(uc.discountAmount) || safeNumber(uc.amount);
+
+        return sum + couponAmount;
+    }, 0);
+
+    return {
+        totalOrders,
+        totalPaymentAmount: netAmount,
+        totalRefundAmount: allocatedRefundSum,
+        finalPaymentAmount: netAmount,
+        couponUsageCount,
+        totalDiscountAmount,
+        refundStatsCount,
+    };
 }
