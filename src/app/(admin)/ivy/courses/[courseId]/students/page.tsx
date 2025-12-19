@@ -3,7 +3,7 @@ import { columns } from './columns';
 
 import { BulkEditButton } from './_components/bulk-edit-button';
 import { AdminDataTable } from '@/components/admin-data-table';
-import { getEnrolledUsers } from '@/app/(admin)/ivy/_actions/users/get-enrolled-users';
+import { getEnrolledUsers } from '@/app/(admin)/cojooboo/_actions/users/get-enrolled-users';
 
 interface Props {
     params: Promise<{

@@ -1,14 +1,14 @@
 'use server';
 
 import { getIsAdmin } from '@/lib/is-admin';
-import { ivyDb } from '@/lib/ivyDb';
+import { cojoobooDb } from '@/lib/cojoobooDb';
 
 export async function editChapter({ chapterId, values }: { chapterId: string; values: any }) {
     try {
         const isAdmin = await getIsAdmin();
         if (!isAdmin) return null;
 
-        const updatedChapter = await ivyDb.chapter.update({
+        const updatedChapter = await cojoobooDb.chapter.update({
             where: {
                 id: chapterId,
             },

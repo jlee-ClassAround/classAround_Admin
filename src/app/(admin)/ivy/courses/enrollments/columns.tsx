@@ -12,7 +12,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { dateTimeFormat } from '@/utils/formats';
-import { Course, Enrollment, User } from '@/generated/ivy';
+import { Course, Enrollment, User } from '@/generated/cojooboo';
 import { ColumnDef, Row, Table } from '@tanstack/react-table';
 import axios from 'axios';
 import { MoreHorizontal, Trash2 } from 'lucide-react';
@@ -60,7 +60,7 @@ export const columns: ColumnDef<EnrollmentWithRelations>[] = [
             return (
                 <div className="max-w-[300px] truncate">
                     <Link
-                        href={`/ivy/courses/${data.id}`}
+                        href={`/cojooboo/courses/${data.id}`}
                         className="hover:text-primary hover:underline"
                     >
                         {data.title}
@@ -80,7 +80,7 @@ export const columns: ColumnDef<EnrollmentWithRelations>[] = [
             return (
                 <div className="truncate">
                     <Link
-                        href={`/ivy/users/${data.id}`}
+                        href={`/cojooboo/users/${data.id}`}
                         className="hover:text-primary hover:underline"
                     >
                         {data.username}

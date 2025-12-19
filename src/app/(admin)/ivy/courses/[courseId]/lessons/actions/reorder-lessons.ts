@@ -1,7 +1,7 @@
 'use server';
 
 import { getIsAdmin } from '@/lib/is-admin';
-import { ivyDb } from '@/lib/ivyDb';
+import { cojoobooDb } from '@/lib/cojoobooDb';
 
 export async function reorderLessons({
     lessonList,
@@ -13,7 +13,7 @@ export async function reorderLessons({
         if (!isAdmin) return null;
 
         for (const item of lessonList) {
-            await ivyDb.lesson.update({
+            await cojoobooDb.lesson.update({
                 where: {
                     id: item.id,
                 },

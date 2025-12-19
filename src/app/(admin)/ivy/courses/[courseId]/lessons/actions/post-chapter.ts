@@ -1,8 +1,8 @@
 'use server';
 
-import { ivyDb } from '@/lib/ivyDb';
+import { cojoobooDb } from '@/lib/cojoobooDb';
 
-import { ChapterSchema } from '@/lib/ivy/schemas';
+import { ChapterSchema } from '@/lib/cojooboo/schemas';
 import { getIsAdmin } from '@/lib/is-admin';
 
 export async function postChapter({
@@ -16,7 +16,7 @@ export async function postChapter({
         const isAdmin = await getIsAdmin();
         if (!isAdmin) return null;
 
-        const lastChapter = await ivyDb.chapter.findFirst({
+        const lastChapter = await cojoobooDb.chapter.findFirst({
             where: {
                 courseId,
             },
@@ -29,7 +29,7 @@ export async function postChapter({
         });
         const newPosition = lastChapter ? lastChapter.position + 1 : 1;
 
-        const newChapter = await ivyDb.chapter.create({
+        const newChapter = await cojoobooDb.chapter.create({
             data: {
                 ...values,
                 courseId,

@@ -1,7 +1,7 @@
 'use server';
 
 import { getIsAdmin } from '@/lib/is-admin';
-import { ivyDb } from '@/lib/ivyDb';
+import { cojoobooDb } from '@/lib/cojoobooDb';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { z } from 'zod';
 
@@ -20,7 +20,7 @@ export async function createCategory(_: any, formData: FormData) {
         };
     }
 
-    const category = await ivyDb.category.findUnique({
+    const category = await cojoobooDb.category.findUnique({
         where: {
             name_type: {
                 name: result.data.name,
@@ -37,7 +37,7 @@ export async function createCategory(_: any, formData: FormData) {
         };
     }
 
-    await ivyDb.category.create({
+    await cojoobooDb.category.create({
         data: {
             name: result.data.name,
             description: result.data.description,
@@ -45,7 +45,7 @@ export async function createCategory(_: any, formData: FormData) {
         },
     });
 
-    revalidatePath('/ivy/courses/categories');
+    revalidatePath('/cojooboo/courses/categories');
     revalidateTag('categories');
 
     return {
@@ -55,7 +55,7 @@ export async function createCategory(_: any, formData: FormData) {
 }
 
 export async function deleteCategory(categoryId: string) {
-    const category = await ivyDb.category.findUnique({
+    const category = await cojoobooDb.category.findUnique({
         where: {
             id: categoryId,
         },
@@ -74,13 +74,13 @@ export async function deleteCategory(categoryId: string) {
         };
     }
 
-    await ivyDb.category.delete({
+    await cojoobooDb.category.delete({
         where: {
             id: categoryId,
         },
     });
 
-    revalidatePath('/ivy/courses/categories');
+    revalidatePath('/cojooboo/courses/categories');
     revalidateTag('categories');
 
     return {
@@ -100,7 +100,7 @@ export async function updateCategory(_: any, formData: FormData) {
     }
 
     try {
-        await ivyDb.category.update({
+        await cojoobooDb.category.update({
             where: {
                 id: formData.get('categoryId') as string,
             },
@@ -113,7 +113,7 @@ export async function updateCategory(_: any, formData: FormData) {
         console.log('CATEGORY_UPDATE_ERROR', e);
     }
 
-    revalidatePath('/ivy/courses/categories');
+    revalidatePath('/cojooboo/courses/categories');
     revalidateTag('categories');
 
     return {

@@ -1,16 +1,16 @@
 'use client';
 
-import { useCourseEditorStore } from '@/store/ivy/use-course-editor-store';
+import { useCourseEditorStore } from '@/store/cojooboo/use-course-editor-store';
 import { Loader2, Plus } from 'lucide-react';
 import { ChapterDragDrop } from './chapter-drag-drop';
-import { Chapter, Lesson } from '@/generated/ivy';
+import { Chapter, Lesson } from '@/generated/cojooboo';
 import { useEffect } from 'react';
 import { ChapterModal } from './chapter-modal';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { LessonModal } from './lesson-modal';
 import { reorderChapters } from '../actions/reorder-chapters';
 import { toast } from 'sonner';
-import { getCourseChapters } from '@/app/(admin)/ivy/_actions/courses/get-course-with-chapters';
+import { getCourseChapters } from '@/app/(admin)/cojooboo/_actions/courses/get-course-with-chapters';
 
 interface Props {
     courseId: string;

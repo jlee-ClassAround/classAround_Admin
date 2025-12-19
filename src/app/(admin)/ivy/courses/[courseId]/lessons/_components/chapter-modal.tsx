@@ -20,12 +20,12 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useCourseEditorStore } from '@/store/ivy/use-course-editor-store';
+import { useCourseEditorStore } from '@/store/cojooboo/use-course-editor-store';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 
-import { ChapterSchema, chapterSchema } from '@/lib/ivy/schemas';
-import { Chapter } from '@/generated/ivy';
+import { ChapterSchema, chapterSchema } from '@/lib/cojooboo/schemas';
+import { Chapter } from '@/generated/cojooboo';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { toast } from 'sonner';

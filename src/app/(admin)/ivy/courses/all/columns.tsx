@@ -1,5 +1,6 @@
 'use client';
 
+import * as React from 'react';
 import { DataTableColumnHeader } from '@/components/table/data-table-column-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,19 +15,129 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { dateTimeFormat, formatPrice } from '@/utils/formats';
-import { Course } from '@/generated/ivy';
-import { ColumnDef, Row, Table } from '@tanstack/react-table';
-import axios from 'axios';
-import { Copy, CopyPlusIcon, Edit, MoreHorizontal, Trash2 } from 'lucide-react';
+import type { Course } from '@/generated/cojooboo';
+import type { ColumnDef, Row, Table } from '@tanstack/react-table';
+import {
+    Copy,
+    CopyPlusIcon,
+    Edit,
+    MoreHorizontal,
+    Trash2,
+    ListTree,
+    Loader2,
+    ChevronDown,
+    ChevronRight,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
 import { toast } from 'sonner';
 import {
     deleteCourseAction,
     deleteCoursesBulkAction,
     duplicateCourseAction,
 } from '../actions/courses';
+import { getChildCoursesByParentId, type ChildCourseRow } from '../actions/get-child-courses';
+
+function TitleCell({ course }: { course: Course }) {
+    const [open, setOpen] = React.useState<boolean>(false);
+    const [loading, setLoading] = React.useState<boolean>(false);
+    const [children, setChildren] = React.useState<ChildCourseRow[] | null>(null);
+
+    const toggle = async () => {
+        const next = !open;
+        setOpen(next);
+
+        // 열 때만 로드 (이미 로드했다면 재호출 안 함)
+        if (next && children === null) {
+            setLoading(true);
+            try {
+                const list = await getChildCoursesByParentId(course.id);
+                setChildren(Array.isArray(list) ? list : []);
+            } catch {
+                toast.error('하위 강의를 불러오지 못했습니다.');
+                setChildren([]);
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
+
+    return (
+        <div className="max-w-[520px]">
+            <div className="flex items-center gap-2">
+                <Link
+                    href={`/cojooboo/courses/${course.id}`}
+                    className="hover:text-primary truncate"
+                >
+                    {course.title}
+                </Link>
+
+                {/* ✅ 인라인 펼치기 버튼 */}
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="ml-auto h-7 px-2 text-xs"
+                    onClick={toggle}
+                >
+                    {open ? (
+                        <ChevronDown className="size-4 mr-1" />
+                    ) : (
+                        <ChevronRight className="size-4 mr-1" />
+                    )}
+                    하위
+                </Button>
+            </div>
+
+            {/* ✅ 펼쳐진 자녀 목록 (모달 없음) */}
+            {open ? (
+                <div className="mt-2 pl-3 border-l space-y-1">
+                    {loading ? (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <Loader2 className="size-3 animate-spin" />
+                            불러오는 중…
+                        </div>
+                    ) : (children?.length ?? 0) === 0 ? (
+                        <div className="text-xs text-muted-foreground">하위 강의가 없습니다.</div>
+                    ) : (
+                        children!.map((c) => {
+                            const price = c.discountedPrice ?? c.originalPrice ?? 0;
+                            return (
+                                <div key={c.id} className="flex items-center gap-2 text-xs">
+                                    <span className="text-muted-foreground">•</span>
+
+                                    <Link
+                                        href={`/cojooboo/courses/${c.id}`}
+                                        className="hover:text-primary truncate max-w-[300px]"
+                                    >
+                                        {c.title}
+                                    </Link>
+
+                                    <span className="ml-auto text-muted-foreground">
+                                        {price ? formatPrice(price) : ''}
+                                    </span>
+
+                                    <Badge
+                                        variant="secondary"
+                                        className={cn(
+                                            'rounded-full h-5 px-2',
+                                            c.isPublished
+                                                ? 'bg-green-200 text-green-600'
+                                                : 'bg-gray-200 text-gray-600'
+                                        )}
+                                    >
+                                        {c.isPublished ? '공개' : '비공개'}
+                                    </Badge>
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+            ) : null}
+        </div>
+    );
+}
+
 export const columns: ColumnDef<Course>[] = [
     {
         id: 'select',
@@ -48,52 +159,39 @@ export const columns: ColumnDef<Course>[] = [
             />
         ),
     },
+
     {
         accessorKey: 'title',
-        meta: {
-            label: '강의명',
-        },
+        meta: { label: '강의명' },
         header: ({ column }) => <DataTableColumnHeader column={column} title="강의명" />,
-        cell: ({ row }) => {
-            const course = row.original;
-
-            return (
-                <div className="max-w-[300px] truncate">
-                    <Link href={`/ivy/courses/${course.id}`} className="hover:text-primary">
-                        {course.title}
-                    </Link>
-                </div>
-            );
-        },
+        cell: ({ row }) => <TitleCell course={row.original} />,
     },
 
     {
         accessorKey: 'originalPrice',
-        meta: {
-            label: '원가',
-        },
+        meta: { label: '원가' },
         header: ({ column }) => <DataTableColumnHeader column={column} title="원가" />,
         cell: ({ row }) => {
             const amount = row.original.discountedPrice
                 ? row.original.discountedPrice
-                : parseInt(row.getValue('originalPrice'));
+                : row.original.originalPrice ?? 0;
+
             return <div>{amount ? formatPrice(amount) : ''}</div>;
         },
     },
+
     {
         accessorKey: 'isPublished',
-        meta: {
-            label: '상태',
-        },
+        meta: { label: '상태' },
         header: ({ column }) => <DataTableColumnHeader column={column} title="상태" />,
         cell: ({ row }) => {
-            const isPublished = row.getValue('isPublished');
+            const isPublished = Boolean(row.getValue('isPublished'));
             return (
                 <Badge
                     variant="secondary"
                     className={cn(
                         'rounded-full',
-                        isPublished ? 'bg-green-200 text-green-500' : 'bg-gray-200 text-gray-500'
+                        isPublished ? 'bg-green-200 text-green-600' : 'bg-gray-200 text-gray-600'
                     )}
                 >
                     {isPublished ? '공개' : '비공개'}
@@ -101,42 +199,17 @@ export const columns: ColumnDef<Course>[] = [
             );
         },
     },
-    // {
-    //   accessorKey: "isFocusMode",
-    //   meta: {
-    //     label: "포커스모드",
-    //   },
-    //   header: ({ column }) => (
-    //     <DataTableColumnHeader column={column} title="포커스모드" />
-    //   ),
-    //   cell: ({ row }) => {
-    //     const isFocusMode = row.getValue("isFocusMode");
-    //     return (
-    //       <Badge
-    //         variant="secondary"
-    //         className={cn(
-    //           "rounded-full",
-    //           isFocusMode
-    //             ? "bg-primary/20 text-primary"
-    //             : "bg-gray-200 text-gray-500"
-    //         )}
-    //       >
-    //         {isFocusMode ? "on" : "off"}
-    //       </Badge>
-    //     );
-    //   },
-    // },
+
     {
         accessorKey: 'createdAt',
-        meta: {
-            label: '생성일',
-        },
+        meta: { label: '생성일' },
         header: ({ column }) => <DataTableColumnHeader column={column} title="생성일" />,
         cell: ({ row }) => {
             const data = dateTimeFormat(row.getValue('createdAt'));
             return <div className="text-xs truncate">{data}</div>;
         },
     },
+
     {
         id: 'actions',
         header: ({ table }) => <ActionHeader table={table} />,
@@ -147,8 +220,8 @@ export const columns: ColumnDef<Course>[] = [
 function ActionHeader({ table }: { table: Table<Course> }) {
     const router = useRouter();
     const selectedRows = table.getFilteredSelectedRowModel().rows;
-    const [isLoading, setIsLoading] = useState(false);
-    const selectedRowLength = table.getFilteredSelectedRowModel().rows.length;
+    const [isLoading, setIsLoading] = React.useState(false);
+    const selectedRowLength = selectedRows.length;
 
     const handleDelete = async () => {
         if (!selectedRowLength) return;
@@ -157,16 +230,14 @@ function ActionHeader({ table }: { table: Table<Course> }) {
             !confirm(
                 `선택한 ${selectedRowLength}개의 강의를 정말 삭제하시겠습니까? 삭제된 정보는 되돌릴 수 없습니다.`
             )
-        )
+        ) {
             return;
+        }
 
         try {
             setIsLoading(true);
 
-            const result = await deleteCoursesBulkAction(
-                selectedRows.map((row) => row.original.id)
-            );
-
+            const result = await deleteCoursesBulkAction(selectedRows.map((r) => r.original.id));
             if (!result.success) {
                 toast.error(result.error || '삭제 중 오류가 발생했습니다.');
                 return;
@@ -175,7 +246,7 @@ function ActionHeader({ table }: { table: Table<Course> }) {
             table.resetRowSelection();
             router.refresh();
             toast.success(`선택한 ${selectedRowLength}개의 강의가 삭제되었습니다.`);
-        } catch (e) {
+        } catch {
             toast.error('삭제 중 오류가 발생했습니다.');
         } finally {
             setIsLoading(false);
@@ -200,6 +271,7 @@ function ActionHeader({ table }: { table: Table<Course> }) {
                         )}
                     </Button>
                 </DropdownMenuTrigger>
+
                 <DropdownMenuContent align="end">
                     <DropdownMenuLabel>전체 설정</DropdownMenuLabel>
                     <DropdownMenuSeparator />
@@ -215,7 +287,7 @@ function ActionHeader({ table }: { table: Table<Course> }) {
 function ActionCell({ row }: { row: Row<Course> }) {
     const data = row.original;
     const router = useRouter();
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = React.useState(false);
 
     const handleDelete = async () => {
         if (!confirm('정말 삭제하시겠습니까? 삭제된 강의는 되돌릴 수 없습니다.')) return;
@@ -228,6 +300,7 @@ function ActionCell({ row }: { row: Row<Course> }) {
                 toast.error(result.error || '삭제 중 오류가 발생했습니다.');
                 return;
             }
+
             router.refresh();
             toast.success('강의가 삭제되었습니다.');
         } catch {
@@ -241,10 +314,12 @@ function ActionCell({ row }: { row: Row<Course> }) {
         try {
             setIsLoading(true);
             const result = await duplicateCourseAction(data.id, isIncludeChapters);
+
             if (!result.success) {
                 toast.error(result.error || '복제 중 오류가 발생했습니다.');
                 return;
             }
+
             router.refresh();
             toast.success('강의가 복제되었습니다.');
         } catch {
@@ -263,35 +338,43 @@ function ActionCell({ row }: { row: Row<Course> }) {
                         <MoreHorizontal />
                     </Button>
                 </DropdownMenuTrigger>
+
                 <DropdownMenuContent align="end">
                     <DropdownMenuLabel>설정</DropdownMenuLabel>
+
                     <DropdownMenuItem
-                        onClick={() =>
+                        onClick={() => {
                             navigator.clipboard.writeText(
                                 `${window.location.origin}/courses/${data.id}`
-                            )
-                        }
+                            );
+                            toast.success('강의 주소가 복사되었습니다.');
+                        }}
                     >
-                        <Copy className="text-muted-foreground" />
+                        <Copy className="size-4 mr-2 text-muted-foreground" />
                         강의 주소 복사
                     </DropdownMenuItem>
+
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem>
-                        <Link href={`/ivy/courses/${data.id}`} className="flex items-center">
+
+                    <DropdownMenuItem asChild>
+                        <Link href={`/cojooboo/courses/${data.id}`} className="flex items-center">
                             <Edit className="size-4 mr-2 text-muted-foreground" />
                             편집하기
                         </Link>
                     </DropdownMenuItem>
+
                     <DropdownMenuItem disabled={isLoading} onClick={() => handleDuplicate(false)}>
-                        <CopyPlusIcon className="size-4 text-muted-foreground" />
+                        <CopyPlusIcon className="size-4 mr-2 text-muted-foreground" />
                         복제
                     </DropdownMenuItem>
+
                     <DropdownMenuItem disabled={isLoading} onClick={() => handleDuplicate(true)}>
-                        <CopyPlusIcon className="size-4 text-muted-foreground" />
+                        <CopyPlusIcon className="size-4 mr-2 text-muted-foreground" />
                         복제(커리큘럼 포함)
                     </DropdownMenuItem>
+
                     <DropdownMenuItem disabled={isLoading} onClick={handleDelete}>
-                        <Trash2 className="size-4 text-muted-foreground" />
+                        <Trash2 className="size-4 mr-2 text-muted-foreground" />
                         삭제
                     </DropdownMenuItem>
                 </DropdownMenuContent>

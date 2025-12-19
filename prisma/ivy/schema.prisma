@@ -11,65 +11,68 @@ datasource db {
 }
 
 model User {
-  id              String          @id @default(uuid())
+  id              String           @id @default(uuid())
   username        String?
   nickname        String?
-  email           String?         @unique
+  email           String?          @unique
   password        String?
-  phone           String?         @unique
+  phone           String?          @unique
   avatar          String?
-  kakaoId         String?         @unique
-  kajabiContactId String?         @unique
-  optedIn         Boolean         @default(false)
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  kakaoId         String?          @unique
+  kajabiContactId String?          @unique
+  optedIn         Boolean          @default(false)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
   roleId          String?
   applyCourses    ApplyCourse[]
   contacts        Contact[]
   ebookPurchases  EbookPurchase[]
   enrollments     Enrollment[]
+  Order           Order[]
   revenues        Revenue[]
   revieww         Review[]
   tossCustomers   TossCustomer[]
-  Role            Role?           @relation(fields: [roleId], references: [id])
+  Role            Role?            @relation(fields: [roleId], references: [id])
+  UserBillingInfo UserBillingInfo?
   userCoupons     UserCoupon[]
   userProgresses  UserProgress[]
   userTags        UserTag[]
 }
 
 model Course {
-  id                String          @id @default(uuid())
-  title             String          @default("")
+  id                String         @id @default(uuid())
+  title             String         @default("")
   description       String?
-  productType       ProductType     @default(SIMPLE)
+  productType       ProductType    @default(SIMPLE)
   originalPrice     Int?
   discountedPrice   Int?
-  showInInstallment Boolean         @default(false)
-  isTaxFree         Boolean         @default(false)
+  showInInstallment Boolean        @default(false)
+  isTaxFree         Boolean        @default(false)
   thumbnail         String?
-  isPublished       Boolean         @default(false)
-  isHidden          Boolean         @default(false)
-  isFocusMode       Boolean         @default(false)
-  isUpcoming        Boolean         @default(false)
+  isPublished       Boolean        @default(false)
+  isHidden          Boolean        @default(false)
+  isFocusMode       Boolean        @default(false)
+  isUpcoming        Boolean        @default(false)
   endDate           DateTime?
   maxPurchaseCount  Int?
   accessDuration    Int?
   kakaoRoomLink     String?
   kakaoRoomPassword String?
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
   categoryId        String?
+  parentId          String?
   chapters          Chapter[]
-  category          Category?       @relation(fields: [categoryId], references: [id])
+  category          Category?      @relation(fields: [categoryId], references: [id])
   options           CourseOption[]
   detailImages      DetailImage[]
   enrollments       Enrollment[]
-  PartialCourse     PartialCourse[]
+  orderItems        OrderItem[]
   reviews           Review[]
   tossCustomers     TossCustomer[]
-  coupons           Coupon[]        @relation("CouponToCourse")
-  productBadge      ProductBadge[]  @relation("CourseToProductBadge")
-  teachers          Teacher[]       @relation("CourseToTeacher")
+  coupons           Coupon[]       @relation("CouponToCourse")
+  productBadge      ProductBadge[] @relation("CourseToProductBadge")
+  teachers          Teacher[]      @relation("CourseToTeacher")
 }
 
 model FreeCourse {
@@ -498,6 +501,7 @@ model Ebook {
   detailImages      DetailImage[]
   category          Category?       @relation(fields: [categoryId], references: [id])
   purchases         EbookPurchase[]
+  orderItems        OrderItem[]
   tossCustomers     TossCustomer[]
   productBadge      ProductBadge[]  @relation("EbookToProductBadge")
 }
@@ -517,17 +521,123 @@ model EbookPurchase {
   @@unique([userId, ebookId])
 }
 
-model PartialCourse {
-  id            String   @id @default(dbgenerated("gen_random_uuid()"))
-  mainId        String
-  title         String
-  originalPrice Int?
-  createdAt     DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt     DateTime @default(now()) @db.Timestamptz(6)
-  isHidden      Boolean  @default(false)
-  Course        Course   @relation(fields: [mainId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+model BillingSnapshot {
+  id              String           @id
+  billingType     BillingType      @default(CASH_RECEIPT)
+  depositorName   String
+  note            String?
+  cashReceiptType CashReceiptType?
+  receiptNumber   String?
+  businessNumber  String?
+  companyName     String?
+  ceoName         String?
+  businessAddress String?
+  businessType    String?
+  businessItem    String?
+  contactName     String?
+  contactPhone    String?
+  contactEmail    String?
+  createdAt       DateTime         @default(now()) @db.Timestamp(6)
+  Payment         Payment[]
+}
 
-  @@index([mainId])
+model Order {
+  id              String      @id
+  orderName       String
+  orderNumber     String
+  type            OrderType   @default(BULK_PAYMENT)
+  status          OrderStatus @default(PENDING)
+  amount          Int
+  remainingAmount Int
+  paidAmount      Int
+  originalPrice   Int
+  discountedPrice Int?
+  usedCoupon      Json?
+  createdAt       DateTime    @default(now()) @db.Timestamp(6)
+  updatedAt       DateTime    @db.Timestamp(6)
+  userId          String?
+  user            User?       @relation(fields: [userId], references: [id])
+  orderItems      OrderItem[]
+  payments        Payment[]
+}
+
+model OrderItem {
+  id              String          @id
+  productCategory ProductCategory @default(COURSE)
+  productId       String
+  productTitle    String
+  productOptionId String?
+  productOption   Json?
+  quantity        Int             @default(1)
+  originalPrice   Int
+  discountedPrice Int?
+  createdAt       DateTime        @default(now()) @db.Timestamp(6)
+  updatedAt       DateTime        @db.Timestamp(6)
+  orderId         String
+  courseId        String?
+  ebookId         String?
+  course          Course?         @relation(fields: [courseId], references: [id])
+  ebook           Ebook?          @relation(fields: [ebookId], references: [id])
+  order           Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model Payment {
+  id                  String           @id
+  tossPaymentKey      String?
+  mId                 String?
+  tossSecretKey       String?
+  amount              Int
+  isTaxFree           Boolean          @default(false)
+  fee                 Int
+  isPartialCancelable Boolean          @default(false)
+  paymentMethod       PaymentMethod    @default(CARD)
+  paymentStatus       PaymentStatus    @default(READY)
+  cancelAmount        Int?
+  cancelReason        String?
+  refundableAmount    Int?
+  canceledAt          DateTime?        @db.Timestamp(6)
+  receiptUrl          String?
+  createdAt           DateTime         @default(now()) @db.Timestamp(6)
+  updatedAt           DateTime         @db.Timestamp(6)
+  orderId             String
+  billingSnapshotId   String?
+  billingSnapshot     BillingSnapshot? @relation(fields: [billingSnapshotId], references: [id])
+  order               Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  paymentCancel       PaymentCancel[]
+}
+
+model PaymentCancel {
+  id               String   @id(map: "paymentcancel_pkey")
+  cancelAmount     Int
+  cancelReason     String
+  taxFreeAmount    Int
+  refundableAmount Int
+  cancelStatus     String   @default("DONE")
+  canceledAt       DateTime @default(now()) @db.Timestamp(6)
+  paymentId        String
+  payment          Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade, map: "paymentcancel_paymentid_fkey")
+}
+
+model UserBillingInfo {
+  id              String           @id
+  userId          String           @unique
+  billingType     BillingType      @default(CASH_RECEIPT)
+  depositorName   String
+  note            String?
+  cashReceiptType CashReceiptType?
+  receiptNumber   String?
+  businessNumber  String?
+  companyName     String?
+  ceoName         String?
+  businessAddress String?
+  businessType    String?
+  businessItem    String?
+  contactName     String?
+  contactPhone    String?
+  contactEmail    String?
+  createdAt       DateTime         @default(now()) @db.Timestamp(6)
+  updatedAt       DateTime         @db.Timestamp(6)
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 enum ProductType {
@@ -542,4 +652,42 @@ enum CategoryType {
   TEACHER
   FAQ
   NOTICE
+}
+
+enum BillingType {
+  CASH_RECEIPT
+  TAX_INVOICE
+}
+
+enum CashReceiptType {
+  PERSONAL
+  BUSINESS
+}
+
+enum OrderStatus {
+  PENDING
+}
+
+enum OrderType {
+  BULK_PAYMENT
+}
+
+enum PaymentMethod {
+  CARD
+  VIRTUAL_ACCOUNT
+}
+
+enum PaymentStatus {
+  READY
+  WAITING_FOR_DEPOSIT
+  WAITING_FOR_DIRECT_DEPOSIT
+  DONE
+  CANCELED
+  PARTIAL_CANCELED
+  FAILED
+}
+
+enum ProductCategory {
+  COURSE
+  EBOOK
 }

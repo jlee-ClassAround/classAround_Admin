@@ -1,6 +1,6 @@
 import { Card } from '@/components/ui/card';
 import { EnrollForm } from './_components/enroll-form';
-import { ivyDb } from '@/lib/ivyDb';
+import { cojoobooDb } from '@/lib/cojoobooDb';
 
 interface Props {
     searchParams: Promise<{
@@ -11,9 +11,10 @@ interface Props {
 export default async function EnrollPage({ searchParams }: Props) {
     const { search } = await searchParams;
 
-    const courses = await ivyDb.course.findMany({
+    const courses = await cojoobooDb.course.findMany({
         where: {
             isPublished: true,
+            parentId: null,
         },
         orderBy: {
             createdAt: 'desc',
@@ -24,7 +25,7 @@ export default async function EnrollPage({ searchParams }: Props) {
         },
     });
 
-    const users = await ivyDb.user.findMany({
+    const users = await cojoobooDb.user.findMany({
         where: {
             OR: [
                 {

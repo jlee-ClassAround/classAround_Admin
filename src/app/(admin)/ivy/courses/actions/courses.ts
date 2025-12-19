@@ -1,8 +1,8 @@
 'use server';
 
-import { ivyDb } from '@/lib/ivyDb';
+import { cojoobooDb } from '@/lib/cojoobooDb';
 import { getIsAdmin } from '@/lib/is-admin';
-import { CourseSchema } from '@/lib/ivy/schemas';
+import { CourseSchema } from '@/lib/cojooboo/schemas';
 import { DetailImageType } from '@/store/use-detail-images';
 import { TeacherType } from '@/store/use-select-teachers';
 import { revalidateTag } from 'next/cache';
@@ -26,7 +26,7 @@ export async function updateCourseAction(
 
         const { productBadgeIds, ...data } = values;
 
-        const course = await ivyDb.course.update({
+        const course = await cojoobooDb.course.update({
             where: { id: courseId },
             data: {
                 ...data,
@@ -73,7 +73,7 @@ export async function deleteCourseAction(courseId: string) {
             return { success: false, error: 'Unauthorized' };
         }
 
-        await ivyDb.course.delete({
+        await cojoobooDb.course.delete({
             where: { id: courseId },
         });
 
@@ -107,7 +107,7 @@ export async function createCourseAction(values: z.infer<typeof createCourseSche
 
         const { title } = parsed.data;
 
-        const course = await ivyDb.course.create({
+        const course = await cojoobooDb.course.create({
             data: { title },
             select: { id: true },
         });
@@ -131,7 +131,7 @@ export async function deleteCoursesBulkAction(courseIds: string[]) {
             return { success: false, error: 'Unauthorized' };
         }
 
-        await ivyDb.course.deleteMany({
+        await cojoobooDb.course.deleteMany({
             where: {
                 id: { in: courseIds },
             },
@@ -160,7 +160,7 @@ export async function duplicateCourseAction(courseId: string, isIncludeChapters:
         }
 
         // 기존 강의 조회
-        const course = await ivyDb.course.findUnique({
+        const course = await cojoobooDb.course.findUnique({
             where: { id: courseId },
             include: {
                 chapters: {
@@ -176,7 +176,7 @@ export async function duplicateCourseAction(courseId: string, isIncludeChapters:
         const { chapters, ...courseData } = course;
 
         // 기본 강의 복제
-        const newCourse = await ivyDb.course.create({
+        const newCourse = await cojoobooDb.course.create({
             data: {
                 ...courseData,
                 id: uuidv4(),
@@ -193,7 +193,7 @@ export async function duplicateCourseAction(courseId: string, isIncludeChapters:
             for (const chapter of chapters) {
                 const { lessons, ...chapterData } = chapter;
 
-                const newChapter = await ivyDb.chapter.create({
+                const newChapter = await cojoobooDb.chapter.create({
                     data: {
                         ...chapterData,
                         id: uuidv4(),
@@ -205,7 +205,7 @@ export async function duplicateCourseAction(courseId: string, isIncludeChapters:
                 });
 
                 if (lessons.length > 0) {
-                    await ivyDb.lesson.createMany({
+                    await cojoobooDb.lesson.createMany({
                         data: lessons.map((lesson) => ({
                             ...lesson,
                             id: uuidv4(),

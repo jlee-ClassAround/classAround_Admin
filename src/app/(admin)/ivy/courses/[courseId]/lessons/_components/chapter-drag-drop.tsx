@@ -10,7 +10,7 @@ import {
 } from '@hello-pangea/dnd';
 import { Edit, GripVertical, Loader2, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { ChapterType, useCourseEditorStore } from '@/store/ivy/use-course-editor-store';
+import { ChapterType, useCourseEditorStore } from '@/store/cojooboo/use-course-editor-store';
 import { Button } from '@/components/ui/button';
 import {
     Select,
@@ -391,7 +391,7 @@ function LessonDragDropContext({
                                                     className="text-slate-600 hover:text-primary transition-colors"
                                                     onClick={() =>
                                                         router.push(
-                                                            `/ivy/courses/${courseId}/lessons/${lesson.id}`
+                                                            `/cojooboo/courses/${courseId}/lessons/${lesson.id}`
                                                         )
                                                     }
                                                 >

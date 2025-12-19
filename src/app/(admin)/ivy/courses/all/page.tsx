@@ -1,12 +1,13 @@
 import { Button } from '@/components/ui/button';
-import { ivyDb } from '@/lib/ivyDb';
+import { cojoobooDb } from '@/lib/cojoobooDb';
 import Link from 'next/link';
 import { columns } from './columns';
 import { Card } from '@/components/ui/card';
 import { AdminDataTable } from '@/components/admin-data-table';
 
 export default async function CoursesAll() {
-    const courses = await ivyDb.course.findMany({
+    const courses = await cojoobooDb.course.findMany({
+        where: { parentId: null },
         orderBy: {
             createdAt: 'desc',
         },
@@ -17,7 +18,7 @@ export default async function CoursesAll() {
             <div className="flex items-center justify-between">
                 <h1 className="text-xl font-semibold">모든 강의</h1>
                 <Button asChild>
-                    <Link href="/ivy/courses/create">강의 만들기</Link>
+                    <Link href="/cojooboo/courses/create">강의 만들기</Link>
                 </Button>
             </div>
             <Card className="p-8">

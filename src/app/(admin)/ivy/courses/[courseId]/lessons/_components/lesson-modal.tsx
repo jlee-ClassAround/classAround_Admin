@@ -19,8 +19,8 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { LessonSchema, lessonSchema } from '@/lib/ivy/schemas';
-import { useCourseEditorStore } from '@/store/ivy/use-course-editor-store';
+import { LessonSchema, lessonSchema } from '@/lib/cojooboo/schemas';
+import { useCourseEditorStore } from '@/store/cojooboo/use-course-editor-store';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';

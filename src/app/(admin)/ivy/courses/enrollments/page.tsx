@@ -1,4 +1,4 @@
-import { ivyDb } from '@/lib/ivyDb';
+import { cojoobooDb } from '@/lib/cojoobooDb';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
@@ -7,7 +7,7 @@ import { columns } from './columns';
 import { AdminDataTable } from '@/components/admin-data-table';
 
 export default async function CoursesEnrollmentsPage() {
-    const enrollments = await ivyDb.enrollment.findMany({
+    const enrollments = await cojoobooDb.enrollment.findMany({
         include: {
             course: true,
             user: true,
@@ -22,7 +22,7 @@ export default async function CoursesEnrollmentsPage() {
             <div className="flex items-center justify-between">
                 <h1 className="text-xl font-semibold">강의 등록 관리</h1>
                 <Button asChild>
-                    <Link href="/ivy/courses/enrollments/enroll">수동 등록하기</Link>
+                    <Link href="/cojooboo/courses/enrollments/enroll">수동 등록하기</Link>
                 </Button>
             </div>
             <Card className="p-8">

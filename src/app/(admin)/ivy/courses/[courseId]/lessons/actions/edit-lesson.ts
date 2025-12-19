@@ -1,14 +1,14 @@
 'use server';
 
 import { getIsAdmin } from '@/lib/is-admin';
-import { ivyDb } from '@/lib/ivyDb';
+import { cojoobooDb } from '@/lib/cojoobooDb';
 
 export async function editLesson({ lessonId, values }: { lessonId: string; values: any }) {
     try {
         const isAdmin = await getIsAdmin();
         if (!isAdmin) return null;
 
-        const lesson = await ivyDb.lesson.update({
+        const lesson = await cojoobooDb.lesson.update({
             where: { id: lessonId },
             data: values,
         });

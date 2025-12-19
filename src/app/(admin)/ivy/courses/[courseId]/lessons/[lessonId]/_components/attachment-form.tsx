@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { createAttachment } from '../../actions/create-attachment';
 import { deleteAttachment } from '../../actions/delete-attachment';
 import { getLessonAttachments } from '../../actions/get-lesson-attachments';
-import { FileDropzone } from '@/components/ivy/file-dropzone';
+import { FileDropzone } from '@/components/cojooboo/file-dropzone';
 
 interface Props {
     lessonId: string;

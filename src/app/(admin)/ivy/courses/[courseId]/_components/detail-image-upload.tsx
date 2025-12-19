@@ -8,7 +8,7 @@ import { DetailImageList } from './detail-image-list';
 import { v4 as uuidv4 } from 'uuid';
 import { ERROR_MESSAGE } from '@/constants/validate-message';
 import { toast } from 'sonner';
-import { FileDropzone } from '@/components/ivy/file-dropzone';
+import { FileDropzone } from '@/components/cojooboo/file-dropzone';
 
 interface Props {
     disabled?: boolean;

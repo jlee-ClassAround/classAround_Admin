@@ -1,7 +1,7 @@
 import { Card } from '@/components/ui/card';
 import { columns } from './columns';
 import { AdminDataTable } from '@/components/admin-data-table';
-import { getUsersAppliedFreeCourse } from '@/app/(admin)/ivy/_actions/free-courses/get-users-applied-free-course';
+import { getUsersAppliedFreeCourse } from '@/app/(admin)/cojooboo/_actions/free-courses/get-users-applied-free-course';
 
 interface Props {
     params: Promise<{

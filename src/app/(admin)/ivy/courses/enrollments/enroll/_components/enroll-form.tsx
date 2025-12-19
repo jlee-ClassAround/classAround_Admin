@@ -72,7 +72,7 @@ export function EnrollForm({ courses, users }: Props) {
             }
 
             toast.success('강의 등록에 성공했습니다.');
-            router.push('/ivy/courses/enrollments');
+            router.push('/cojooboo/courses/enrollments');
         } catch {
             toast.error('강의 등록에 실패했습니다.');
         }
