@@ -1,10 +1,10 @@
 'use server';
 
-import { cojoobooDb } from '@/lib/cojoobooDb';
+import { ivyDb } from '@/lib/ivyDb';
 
 export const getUsersWithPhone = async (phoneArr: string[]) => {
     try {
-        const users = await cojoobooDb.user.findMany({
+        const users = await ivyDb.user.findMany({
             where: {
                 phone: {
                     in: phoneArr,

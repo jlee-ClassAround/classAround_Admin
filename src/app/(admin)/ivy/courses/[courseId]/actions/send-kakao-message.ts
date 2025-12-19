@@ -1,6 +1,6 @@
 'use server';
 
-import { sendKakaoAlimtalk } from '@/lib/cojooboo/solapi';
+import { sendKakaoAlimtalk } from '@/lib/ivy/solapi';
 import { getIsAdmin } from '@/lib/is-admin';
 
 export async function sendKakaoMessageAction({

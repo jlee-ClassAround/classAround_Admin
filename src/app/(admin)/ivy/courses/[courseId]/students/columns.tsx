@@ -1,6 +1,6 @@
 'use client';
 
-import { EnrolledUser } from '@/app/(admin)/cojooboo/_actions/users/get-enrolled-users';
+import { EnrolledUser } from '@/app/(admin)/ivy/_actions/users/get-enrolled-users';
 import { DataTableColumnHeader } from '@/components/table/data-table-column-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -66,7 +66,7 @@ export const columns: ColumnDef<EnrolledUser>[] = [
 
             return (
                 <div className="max-w-[300px] truncate">
-                    <Link href={`/cojooboo/users/${data.id}`} className="hover:text-primary">
+                    <Link href={`/ivy/users/${data.id}`} className="hover:text-primary">
                         {data.username}
                     </Link>
                 </div>
@@ -272,7 +272,7 @@ function ActionCell({ row }: { row: Row<EnrolledUser> }) {
                     <DropdownMenuLabel>설정</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem>
-                        <Link href={`/cojooboo/users/${data.id}`} className="flex items-center">
+                        <Link href={`/ivy/users/${data.id}`} className="flex items-center">
                             <Edit className="size-4 mr-2 text-muted-foreground" />
                             상세보기
                         </Link>

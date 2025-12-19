@@ -1,6 +1,6 @@
 'use server';
 
-import { cojoobooDb } from '@/lib/cojoobooDb';
+import { ivyDb } from '@/lib/ivyDb';
 
 export async function createAttachment({
     lessonId,
@@ -11,7 +11,7 @@ export async function createAttachment({
     name: string;
     url: string;
 }) {
-    await cojoobooDb.attachment.create({
+    await ivyDb.attachment.create({
         data: {
             lessonId,
             name,

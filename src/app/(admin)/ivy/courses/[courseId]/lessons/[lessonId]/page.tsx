@@ -1,4 +1,4 @@
-import { cojoobooDb } from '@/lib/cojoobooDb';
+import { ivyDb } from '@/lib/ivyDb';
 import { LessonForm } from './_components/lesson-form';
 import { redirect } from 'next/navigation';
 
@@ -8,12 +8,12 @@ interface Props {
 
 export default async function AdminLessonIdPage({ params }: Props) {
     const { courseId, lessonId } = await params;
-    const lesson = await cojoobooDb.lesson.findUnique({
+    const lesson = await ivyDb.lesson.findUnique({
         where: {
             id: lessonId,
         },
     });
-    if (!lesson) return redirect(`/cojooboo/courses/${courseId}/lessons`);
+    if (!lesson) return redirect(`/ivy/courses/${courseId}/lessons`);
 
     return (
         <div>

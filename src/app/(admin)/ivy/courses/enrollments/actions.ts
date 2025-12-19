@@ -1,6 +1,6 @@
 'use server';
 
-import { cojoobooDb } from '@/lib/cojoobooDb';
+import { ivyDb } from '@/lib/ivyDb';
 
 import { getIsAdmin } from '@/lib/is-admin';
 import { EnrollFormSchema } from './schemas';
@@ -17,7 +17,7 @@ export async function enrollUserInCourse(values: EnrollFormSchema) {
 
         const { courseId, userIds, endDate } = values;
 
-        const existingEnrollments = await cojoobooDb.enrollment.findMany({
+        const existingEnrollments = await ivyDb.enrollment.findMany({
             where: {
                 userId: {
                     in: userIds.map((user) => user.id),
@@ -34,7 +34,7 @@ export async function enrollUserInCourse(values: EnrollFormSchema) {
             };
         }
 
-        await cojoobooDb.enrollment.createMany({
+        await ivyDb.enrollment.createMany({
             data: userIds.map((user) => ({
                 userId: user.id,
                 courseId,
@@ -61,7 +61,7 @@ export async function deleteEnrollment(enrollmentId: string) {
         throw new Error('관리자만 등록을 삭제할 수 있습니다.');
     }
 
-    await cojoobooDb.enrollment.delete({
+    await ivyDb.enrollment.delete({
         where: {
             id: enrollmentId,
         },
@@ -78,7 +78,7 @@ export async function deleteEnrollments(ids: string[]) {
         throw new Error('관리자만 등록을 삭제할 수 있습니다.');
     }
 
-    await cojoobooDb.enrollment.deleteMany({
+    await ivyDb.enrollment.deleteMany({
         where: {
             id: {
                 in: ids,

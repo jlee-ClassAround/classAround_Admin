@@ -1,6 +1,6 @@
 'use server';
 
-import { cojoobooDb } from '@/lib/cojoobooDb';
+import { ivyDb } from '@/lib/ivyDb';
 
 export type ParentCourseOption = {
     id: string;
@@ -9,7 +9,7 @@ export type ParentCourseOption = {
 };
 
 export async function getCourses(): Promise<ParentCourseOption[]> {
-    const rows = await cojoobooDb.course.findMany({
+    const rows = await ivyDb.course.findMany({
         where: {
             parentId: null,
         },

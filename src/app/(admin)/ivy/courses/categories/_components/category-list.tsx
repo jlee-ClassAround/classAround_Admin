@@ -7,7 +7,7 @@ import { Edit, Trash2, XCircle } from 'lucide-react';
 import { useActionState, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { deleteCategory, updateCategory } from '../actions';
-import { IGetCategories } from '@/app/(admin)/cojooboo/_actions/categories/get-categories';
+import { IGetCategories } from '@/app/(admin)/ivy/_actions/categories/get-categories';
 
 interface Props {
     categories: IGetCategories[];

@@ -1,10 +1,10 @@
 'use server';
 
-import { cojoobooDb } from '@/lib/cojoobooDb';
+import { ivyDb } from '@/lib/ivyDb';
 
 export async function getLessonAttachments(lessonId: string) {
     try {
-        const attachments = await cojoobooDb.attachment.findMany({
+        const attachments = await ivyDb.attachment.findMany({
             where: {
                 lessonId,
             },

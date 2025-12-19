@@ -1,4 +1,4 @@
-import { cojoobooDb } from '@/lib/cojoobooDb';
+import { ivyDb } from '@/lib/ivyDb';
 import { redirect } from 'next/navigation';
 import { CourseIdHeader } from './_components/course-id-header';
 import { Suspense } from 'react';
@@ -12,7 +12,7 @@ export default async function AdminCourseIdLayout({
     params: Promise<{ courseId: string }>;
 }) {
     const { courseId } = await params;
-    const course = await cojoobooDb.course.findUnique({
+    const course = await ivyDb.course.findUnique({
         where: {
             id: courseId,
         },
@@ -20,7 +20,7 @@ export default async function AdminCourseIdLayout({
             chapters: true,
         },
     });
-    if (!course) return redirect('/cojooboo/courses/all');
+    if (!course) return redirect('/ivy/courses/all');
 
     return (
         <>

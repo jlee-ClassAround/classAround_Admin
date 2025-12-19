@@ -1,13 +1,13 @@
 'use server';
 
 import { getIsAdmin } from '@/lib/is-admin';
-import { cojoobooDb } from '@/lib/cojoobooDb';
+import { ivyDb } from '@/lib/ivyDb';
 
 export async function addOption(courseId: string) {
     const isAdmin = await getIsAdmin();
     if (!isAdmin) throw new Error('Unauthorized');
 
-    await cojoobooDb.courseOption.create({
+    await ivyDb.courseOption.create({
         data: {
             courseId,
             name: '옵션명',
@@ -20,7 +20,7 @@ export async function deleteOption(optionId: string) {
     const isAdmin = await getIsAdmin();
     if (!isAdmin) throw new Error('Unauthorized');
 
-    await cojoobooDb.courseOption.delete({ where: { id: optionId } });
+    await ivyDb.courseOption.delete({ where: { id: optionId } });
 }
 
 export async function getOptions(courseId: string) {
@@ -28,7 +28,7 @@ export async function getOptions(courseId: string) {
         const isAdmin = await getIsAdmin();
         if (!isAdmin) throw new Error('Unauthorized');
 
-        const options = await cojoobooDb.courseOption.findMany({
+        const options = await ivyDb.courseOption.findMany({
             where: { courseId },
             orderBy: { createdAt: 'asc' },
             include: {
@@ -52,7 +52,7 @@ export async function getOption(optionId: string | null) {
         const isAdmin = await getIsAdmin();
         if (!isAdmin) throw new Error('Unauthorized');
 
-        const option = await cojoobooDb.courseOption.findUnique({
+        const option = await ivyDb.courseOption.findUnique({
             where: { id: optionId },
         });
         return option;
@@ -75,7 +75,7 @@ export async function updateOption({
     const isAdmin = await getIsAdmin();
     if (!isAdmin) throw new Error('Unauthorized');
 
-    await cojoobooDb.courseOption.update({
+    await ivyDb.courseOption.update({
         where: { id: optionId },
         data: {
             ...values,

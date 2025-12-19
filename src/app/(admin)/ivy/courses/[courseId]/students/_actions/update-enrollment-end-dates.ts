@@ -1,6 +1,6 @@
 'use server';
 
-import { cojoobooDb } from '@/lib/cojoobooDb';
+import { ivyDb } from '@/lib/ivyDb';
 
 interface Props {
     courseId: string;
@@ -9,7 +9,7 @@ interface Props {
 
 export async function updateEnrollmentEndDates({ courseId, endDate }: Props) {
     try {
-        const result = await cojoobooDb.enrollment.updateMany({
+        const result = await ivyDb.enrollment.updateMany({
             where: {
                 courseId,
             },

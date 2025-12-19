@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Course } from '@/generated/cojooboo';
+import { Course } from '@/generated/ivy';
 import { cn } from '@/lib/utils';
 
 import { Eye, ImageIcon } from 'lucide-react';
@@ -37,30 +37,30 @@ export function CourseIdHeader({ course }: Props) {
                     <h1 className="text-2xl font-semibold">{course.title}</h1>
                     <div className="flex items-center gap-x-5 text-sm font-medium">
                         <Link
-                            href={`/cojooboo/courses/${course.id}`}
+                            href={`/ivy/courses/${course.id}`}
                             className={cn(
                                 'border-b-2 pb-1 border-transparent transition-colors text-gray-500',
-                                pathname === `/cojooboo/courses/${course.id}` &&
+                                pathname === `/ivy/courses/${course.id}` &&
                                     'border-primary text-black'
                             )}
                         >
                             기본 설정
                         </Link>
                         <Link
-                            href={`/cojooboo/courses/${course.id}/lessons`}
+                            href={`/ivy/courses/${course.id}/lessons`}
                             className={cn(
                                 'border-b-2 pb-1 border-transparent transition-colors text-gray-500',
-                                pathname.includes(`/cojooboo/courses/${course.id}/lessons`) &&
+                                pathname.includes(`/ivy/courses/${course.id}/lessons`) &&
                                     'border-primary text-black'
                             )}
                         >
                             커리큘럼
                         </Link>
                         <Link
-                            href={`/cojooboo/courses/${course.id}/students`}
+                            href={`/ivy/courses/${course.id}/students`}
                             className={cn(
                                 'border-b-2 pb-1 border-transparent transition-colors text-gray-500',
-                                pathname.includes(`/cojooboo/courses/${course.id}/students`) &&
+                                pathname.includes(`/ivy/courses/${course.id}/students`) &&
                                     'border-primary text-black'
                             )}
                         >
@@ -71,7 +71,7 @@ export function CourseIdHeader({ course }: Props) {
             </div>
             <div className="flex items-center gap-x-2">
                 <Button variant="ghost" size="icon" asChild>
-                    <Link href={`${process.env.NEXT_PUBLIC_COJOOBOO_APP_URL}/courses/${course.id}`}>
+                    <Link href={`${process.env.NEXT_PUBLIC_ivy_APP_URL}/courses/${course.id}`}>
                         <Eye className="size-4" />
                         <span className="sr-only">미리보기</span>
                     </Link>

@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { dateTimeFormat, formatPrice } from '@/utils/formats';
-import type { Course } from '@/generated/cojooboo';
+import type { Course } from '@/generated/ivy';
 import type { ColumnDef, Row, Table } from '@tanstack/react-table';
 import {
     Copy,
@@ -65,10 +65,7 @@ function TitleCell({ course }: { course: Course }) {
     return (
         <div className="max-w-[520px]">
             <div className="flex items-center gap-2">
-                <Link
-                    href={`/cojooboo/courses/${course.id}`}
-                    className="hover:text-primary truncate"
-                >
+                <Link href={`/ivy/courses/${course.id}`} className="hover:text-primary truncate">
                     {course.title}
                 </Link>
 
@@ -107,7 +104,7 @@ function TitleCell({ course }: { course: Course }) {
                                     <span className="text-muted-foreground">•</span>
 
                                     <Link
-                                        href={`/cojooboo/courses/${c.id}`}
+                                        href={`/ivy/courses/${c.id}`}
                                         className="hover:text-primary truncate max-w-[300px]"
                                     >
                                         {c.title}
@@ -357,7 +354,7 @@ function ActionCell({ row }: { row: Row<Course> }) {
                     <DropdownMenuSeparator />
 
                     <DropdownMenuItem asChild>
-                        <Link href={`/cojooboo/courses/${data.id}`} className="flex items-center">
+                        <Link href={`/ivy/courses/${data.id}`} className="flex items-center">
                             <Edit className="size-4 mr-2 text-muted-foreground" />
                             편집하기
                         </Link>

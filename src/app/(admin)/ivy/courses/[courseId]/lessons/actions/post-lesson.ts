@@ -1,7 +1,7 @@
 'use server';
 
 import { getIsAdmin } from '@/lib/is-admin';
-import { cojoobooDb } from '@/lib/cojoobooDb';
+import { ivyDb } from '@/lib/ivyDb';
 
 export async function postLesson({
     values,
@@ -14,7 +14,7 @@ export async function postLesson({
         const isAdmin = await getIsAdmin();
         if (!isAdmin) return null;
 
-        const lastLesson = await cojoobooDb.lesson.findFirst({
+        const lastLesson = await ivyDb.lesson.findFirst({
             where: {
                 chapterId,
             },
@@ -28,7 +28,7 @@ export async function postLesson({
 
         const newPosition = lastLesson ? lastLesson.position + 1 : 1;
 
-        const lesson = await cojoobooDb.lesson.create({
+        const lesson = await ivyDb.lesson.create({
             data: {
                 ...values,
                 position: newPosition,

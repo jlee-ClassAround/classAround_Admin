@@ -23,7 +23,7 @@ import type {
     DetailImage,
     ProductBadge,
     Teacher,
-} from '@/generated/cojooboo';
+} from '@/generated/ivy';
 import { CircleX, ImagePlus, ImageUp, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import * as React from 'react';
@@ -39,7 +39,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { COURSE_DESC_MESSAGE, COURSE_TITLE_MESSAGE } from '@/constants/validate-message';
-import { courseSchema, type CourseSchema } from '@/lib/cojooboo/schemas';
+import { courseSchema, type CourseSchema } from '@/lib/ivy/schemas';
 import { useDetailImagesStore } from '@/store/use-detail-images';
 import { useSelectTeachers } from '@/store/use-select-teachers';
 import { useQuery } from '@tanstack/react-query';
@@ -52,7 +52,7 @@ import { OptionAction } from './option-action';
 import { TeacherCombobox } from './teacher-combobox';
 
 import { DatePickerComponent } from '@/components/global/date-picker-component';
-import { FileDropzone } from '@/components/cojooboo/file-dropzone';
+import { FileDropzone } from '@/components/ivy/file-dropzone';
 import { updateCourseAction } from '../../actions/courses';
 import { getCourses } from '../actions/get-courses';
 

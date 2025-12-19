@@ -1,9 +1,9 @@
 'use server';
 
-import { cojoobooDb } from '@/lib/cojoobooDb';
+import { ivyDb } from '@/lib/ivyDb';
 
 export async function deleteAttachment({ attachmentId }: { attachmentId: string }) {
-    await cojoobooDb.attachment.delete({
+    await ivyDb.attachment.delete({
         where: { id: attachmentId },
     });
 }

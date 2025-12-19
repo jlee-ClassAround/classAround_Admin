@@ -1,4 +1,4 @@
-import { cojoobooDb } from '@/lib/cojoobooDb';
+import { ivyDb } from '@/lib/ivyDb';
 import { redirect } from 'next/navigation';
 import { CourseForm } from './_components/course-form';
 import { OptionModal } from './_components/option-modal';
@@ -6,7 +6,7 @@ import { getCategories } from '../../_actions/categories/get-categories';
 
 export default async function CourseIdPage(props: { params: Promise<{ courseId: string }> }) {
     const { courseId } = await props.params;
-    const course = await cojoobooDb.course.findUnique({
+    const course = await ivyDb.course.findUnique({
         where: {
             id: courseId,
         },
@@ -31,17 +31,17 @@ export default async function CourseIdPage(props: { params: Promise<{ courseId: 
             productBadge: true,
         },
     });
-    if (!course) return redirect('/cojooboo/courses/all');
+    if (!course) return redirect('/ivy/courses/all');
 
     const categories = await getCategories({ type: 'COURSE' });
 
-    const teachers = await cojoobooDb.teacher.findMany({
+    const teachers = await ivyDb.teacher.findMany({
         orderBy: {
             name: 'asc',
         },
     });
 
-    const productBadges = await cojoobooDb.productBadge.findMany();
+    const productBadges = await ivyDb.productBadge.findMany();
 
     return (
         <>

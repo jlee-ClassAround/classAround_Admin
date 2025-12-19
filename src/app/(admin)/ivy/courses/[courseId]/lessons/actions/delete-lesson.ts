@@ -1,14 +1,14 @@
 'use server';
 
 import { getIsAdmin } from '@/lib/is-admin';
-import { cojoobooDb } from '@/lib/cojoobooDb';
+import { ivyDb } from '@/lib/ivyDb';
 
 export async function deleteLesson({ lessonId }: { lessonId: string }) {
     try {
         const isAdmin = await getIsAdmin();
         if (!isAdmin) return null;
 
-        await cojoobooDb.lesson.delete({
+        await ivyDb.lesson.delete({
             where: { id: lessonId },
         });
         return true;

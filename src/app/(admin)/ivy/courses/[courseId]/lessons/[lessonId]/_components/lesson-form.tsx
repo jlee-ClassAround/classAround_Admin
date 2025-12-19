@@ -21,10 +21,10 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { videoTypes } from '@/constants/video-types';
-import { LessonSchema, lessonSchema } from '@/lib/cojooboo/schemas';
+import { LessonSchema, lessonSchema } from '@/lib/ivy/schemas';
 import { cn } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Lesson } from '@/generated/cojooboo';
+import { Lesson } from '@/generated/ivy';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -59,7 +59,7 @@ export function LessonForm({ lesson, courseId }: Props) {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['course-chapters'] });
             toast.success('저장이 완료되었습니다.');
-            router.push(`/cojooboo/courses/${courseId}/lessons`);
+            router.push(`/ivy/courses/${courseId}/lessons`);
         },
         onError: () => {
             toast.error('처리 중 오류가 발생했습니다.');

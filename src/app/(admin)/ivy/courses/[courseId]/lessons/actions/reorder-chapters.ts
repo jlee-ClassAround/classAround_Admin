@@ -1,7 +1,7 @@
 'use server';
 
 import { getIsAdmin } from '@/lib/is-admin';
-import { cojoobooDb } from '@/lib/cojoobooDb';
+import { ivyDb } from '@/lib/ivyDb';
 
 export async function reorderChapters({
     chapterList,
@@ -13,7 +13,7 @@ export async function reorderChapters({
         if (!isAdmin) return null;
 
         for (const item of chapterList) {
-            await cojoobooDb.chapter.update({
+            await ivyDb.chapter.update({
                 where: {
                     id: item.id,
                 },

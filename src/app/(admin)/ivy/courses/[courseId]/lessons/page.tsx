@@ -1,7 +1,7 @@
 import { Card } from '@/components/ui/card';
 import { redirect } from 'next/navigation';
 import { ChapterAction } from './_components/chapter-action';
-import { cojoobooDb } from '@/lib/cojoobooDb';
+import { ivyDb } from '@/lib/ivyDb';
 
 export default async function AdminLessonsPage({
     params,
@@ -9,7 +9,7 @@ export default async function AdminLessonsPage({
     params: Promise<{ courseId: string }>;
 }) {
     const { courseId } = await params;
-    const course = await cojoobooDb.course.findUnique({
+    const course = await ivyDb.course.findUnique({
         where: {
             id: courseId,
         },
@@ -28,7 +28,7 @@ export default async function AdminLessonsPage({
             },
         },
     });
-    if (!course) return redirect(`/cojooboo/courses/all`);
+    if (!course) return redirect(`/ivy/courses/all`);
 
     return (
         <Card className="p-8">
