@@ -662,19 +662,33 @@ enum BillingType {
 enum CashReceiptType {
   PERSONAL
   BUSINESS
+  INCOME_DEDUCTION
+  PROOF_OF_EXPENSE
 }
 
 enum OrderStatus {
   PENDING
+  IN_PARTIAL_PROGRESS
+  PAID
+  PARTIAL_REFUNDED
+  REFUNDED
+  REFUND_REQUESTED
+  REFUND_FAILED
+  CANCELED
+  FAILED
 }
 
 enum OrderType {
   BULK_PAYMENT
+  SPLIT_PAYMENT
 }
 
 enum PaymentMethod {
   CARD
   VIRTUAL_ACCOUNT
+  TRANSFER
+  EASY_PAY
+  DIRECT_DEPOSIT
 }
 
 enum PaymentStatus {
@@ -690,4 +704,17 @@ enum PaymentStatus {
 enum ProductCategory {
   COURSE
   EBOOK
+}
+
+enum CashReceiptStatus {
+  ISSUED
+  CANCELED
+  PARTIAL_CANCELED
+}
+
+enum TaxInvoiceStatus {
+  ISSUED
+  CANCELED
+  ISSUANCE_REQUESTED
+  CANCEL_REQUESTED
 }

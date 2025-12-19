@@ -14,10 +14,6 @@ type AllocItem = {
     price: number; // discountedPrice ?? originalPrice
 };
 
-/**
- * 총액(total)을 items 가격 비율로 분배 (반올림 오차는 마지막에 보정)
- * - key로 묶어서 Map으로 반환
- */
 function allocateByRatio(items: AllocItem[], total: Money): Map<string, Money> {
     const result = new Map<string, Money>();
     if (items.length === 0) return result;
@@ -30,12 +26,10 @@ function allocateByRatio(items: AllocItem[], total: Money): Map<string, Money> {
         return result;
     }
 
-    // 1차 배분(내림)
     const allocs: number[] = prices.map((p) => Math.floor((total * p) / totalPrice));
-    let used = allocs.reduce((a, b) => a + b, 0);
+    const used = allocs.reduce((a, b) => a + b, 0);
     let remain = total - used;
 
-    // 남은 금액을 앞에서부터 1원씩 분배(합 정확히 맞추기)
     let idx = 0;
     while (remain > 0) {
         allocs[idx] += 1;
@@ -43,7 +37,6 @@ function allocateByRatio(items: AllocItem[], total: Money): Map<string, Money> {
         idx = (idx + 1) % allocs.length;
     }
 
-    // key별 누적
     for (let i = 0; i < items.length; i++) {
         const k = items[i].key;
         result.set(k, (result.get(k) ?? 0) + allocs[i]);
@@ -61,44 +54,34 @@ type PaymentRow = {
     createdAt: Date;
 };
 
-/**
- * 같은 tossPaymentKey가 여러 row로 중복 저장된 경우(싱크/상태변경 누적) 대비:
- * - tossPaymentKey가 있으면 그 키 기준으로 묶어서
- *   amount/cancelAmount는 최대값을 사용(중복 합산 방지)
- * - tossPaymentKey가 없으면 id 기준(그대로)
- */
 function dedupePayments(rows: PaymentRow[]): PaymentRow[] {
     const byKey = new Map<string, PaymentRow>();
 
     for (const r of rows) {
         const k = r.tossPaymentKey ?? `__NO_KEY__:${r.id}`;
-
         const prev = byKey.get(k);
+
         if (!prev) {
             byKey.set(k, r);
             continue;
         }
 
-        // 같은 결제키 중복일 때: 더 “큰” 값(최신/정합)을 취함
+        const rank = (s: PaymentStatus): number => {
+            if (s === PaymentStatus.CANCELED) return 3;
+            if (s === PaymentStatus.PARTIAL_CANCELED) return 2;
+            if (s === PaymentStatus.DONE) return 1;
+            return 0;
+        };
+
         const merged: PaymentRow = {
             ...prev,
-            // createdAt은 최신값 유지(참고용)
             createdAt: prev.createdAt > r.createdAt ? prev.createdAt : r.createdAt,
             amount: Math.max(prev.amount ?? 0, r.amount ?? 0),
             cancelAmount: Math.max(prev.cancelAmount ?? 0, r.cancelAmount ?? 0),
-            // 상태는 보수적으로 "더 강한 상태"를 선택
-            // (PARTIAL_CANCELED / CANCELED 가 DONE 보다 우선)
-            paymentStatus: (() => {
-                const rank = (s: PaymentStatus): number => {
-                    if (s === PaymentStatus.CANCELED) return 3;
-                    if (s === PaymentStatus.PARTIAL_CANCELED) return 2;
-                    if (s === PaymentStatus.DONE) return 1;
-                    return 0;
-                };
-                return rank(prev.paymentStatus) >= rank(r.paymentStatus)
+            paymentStatus:
+                rank(prev.paymentStatus) >= rank(r.paymentStatus)
                     ? prev.paymentStatus
-                    : r.paymentStatus;
-            })(),
+                    : r.paymentStatus,
         };
 
         byKey.set(k, merged);
@@ -109,7 +92,14 @@ function dedupePayments(rows: PaymentRow[]): PaymentRow[] {
 
 export async function getCoursesWithCustomer() {
     try {
-        // 1) 모든 강의
+        // ✅ 매출/환불에 포함할 PaymentStatus (결제 이력 있는 주문만)
+        const paidStatuses: PaymentStatus[] = [
+            PaymentStatus.DONE,
+            PaymentStatus.CANCELED,
+            PaymentStatus.PARTIAL_CANCELED,
+        ];
+
+        // 1) 모든 강의 (타이틀 기반 main/variant 합치기 때문에 유지)
         const courses = await ivyDb.course.findMany({
             orderBy: { createdAt: 'desc' },
         });
@@ -117,10 +107,14 @@ export async function getCoursesWithCustomer() {
         const courseIds: string[] = courses.map((c) => c.id);
         const courseIdSet = new Set<string>(courseIds);
 
-        // 2) "해당 강의가 포함된 주문"만 가져오되,
-        //    분배 분모 정확도를 위해 주문의 (COURSE/EBOOK) 아이템을 같이 가져옴
+        // 2) ✅ Payment 테이블 기준으로 "결제 이력 있는 주문"만 가져오기
         const orders = await ivyDb.order.findMany({
             where: {
+                payments: {
+                    some: {
+                        paymentStatus: { in: paidStatuses },
+                    },
+                },
                 orderItems: {
                     some: {
                         productCategory: 'COURSE',
@@ -154,29 +148,31 @@ export async function getCoursesWithCustomer() {
             },
         });
 
-        // 3) courseId별 매출/환불 누적
+        // 3) courseId별 매출/환불 누적 + ✅ "결제된 강의" Set
         const revenueMap = new Map<string, Money>();
         const refundMap = new Map<string, Money>();
-
-        // ✅ 매출/환불에 포함할 PaymentStatus (승인된 결제들)
-        const paidStatuses: Set<PaymentStatus> = new Set<PaymentStatus>([
-            PaymentStatus.DONE,
-            PaymentStatus.CANCELED,
-            PaymentStatus.PARTIAL_CANCELED,
-        ]);
+        const paidCourseSet = new Set<string>(); // ✅ payment 기준으로 실제 결제 이력 있는 강의만
 
         for (const order of orders) {
-            // ✅ Payment 기준으로 집계 + 중복 결제키 제거
             const paidPayments = dedupePayments(
-                order.payments.filter((p) => paidStatuses.has(p.paymentStatus))
+                order.payments.filter((p) => paidStatuses.includes(p.paymentStatus))
             );
+
+            // ✅ 결제 이력 있는 주문에 포함된 COURSE 아이템을 Set에 기록(금액 0이어도 포함)
+            if (paidPayments.length > 0) {
+                for (const it of order.orderItems) {
+                    if (it.productCategory !== ProductCategory.COURSE) continue;
+                    const cid = (it.courseId ?? it.productId) as string | null;
+                    if (!cid) continue;
+                    if (!courseIdSet.has(cid)) continue;
+                    paidCourseSet.add(cid);
+                }
+            }
 
             const orderPaid: Money = sum(paidPayments.map((p) => p.amount));
             const orderRefund: Money = sum(paidPayments.map((p) => p.cancelAmount));
 
-            // ✅ 주문의 아이템 전체(강의+전자책)로 분모 구성
-            //    - 강의는 key=courseId(또는 productId fallback)
-            //    - 전자책은 key=EBOOK:<productId> 로 분모에만 포함(강의 매출엔 미반영)
+            // ✅ 주문 아이템 전체(강의+전자책)로 분모 구성
             const allocItems: AllocItem[] = order.orderItems
                 .map((it, idx) => {
                     const price = (it.discountedPrice ?? it.originalPrice) || 0;
@@ -187,7 +183,6 @@ export async function getCoursesWithCustomer() {
                         return { key: cid, price };
                     }
 
-                    // EBOOK 등은 분모 포함용(키는 유니크하게)
                     const pid = it.productId ?? `__NO_PID__:${idx}`;
                     return { key: `__${String(it.productCategory)}__:${pid}`, price };
                 })
@@ -196,7 +191,6 @@ export async function getCoursesWithCustomer() {
             const paidAlloc = allocateByRatio(allocItems, orderPaid);
             const refundAlloc = allocateByRatio(allocItems, orderRefund);
 
-            // ✅ 강의(courseIds)에 해당하는 키만 누적
             for (const [k, amt] of paidAlloc.entries()) {
                 if (!courseIdSet.has(k)) continue;
                 revenueMap.set(k, (revenueMap.get(k) ?? 0) + amt);
@@ -207,25 +201,26 @@ export async function getCoursesWithCustomer() {
             }
         }
 
-        // 4) Course에 합치기 (output 형태 유지)
+        // 4) Course에 합치기 + 결제여부 플래그
         const coursesWithRevenue = courses.map((course) => {
             const totalRevenue = revenueMap.get(course.id) ?? 0;
             const totalRefund = refundMap.get(course.id) ?? 0;
 
             return {
                 ...course,
-                totalRevenue, // 총 결제금액(강의에 할당된)
-                totalRefund, // 총 환불금액(강의에 할당된)
-                totalPrice: totalRevenue - totalRefund, // 순매출
+                totalRevenue,
+                totalRefund,
+                totalPrice: totalRevenue - totalRefund,
+                hasPayment: paidCourseSet.has(course.id), // ✅ 핵심
             };
         });
 
-        // 5) 메인 강의 + 옵션(variant) 통합 (기존 로직 유지)
+        // 5) 메인 강의 + 옵션(variant) 통합
         const mainCourses = coursesWithRevenue.filter((course) =>
             course.title.trim().endsWith(']')
         );
 
-        const result = mainCourses.map((mainCourse) => {
+        const merged = mainCourses.map((mainCourse) => {
             const variants = coursesWithRevenue.filter(
                 (c) =>
                     c.id !== mainCourse.id &&
@@ -238,15 +233,19 @@ export async function getCoursesWithCustomer() {
             const totalRefund =
                 mainCourse.totalRefund + variants.reduce((acc, v) => acc + v.totalRefund, 0);
 
+            const hasPayment = mainCourse.hasPayment || variants.some((v) => v.hasPayment);
+
             return {
                 ...mainCourse,
                 totalRevenue,
                 totalRefund,
                 totalPrice: totalRevenue - totalRefund,
+                hasPayment,
             };
         });
 
-        return result;
+        // ✅ 6) Payment 기준으로 "결제된 강의 항목"만 반환
+        return merged.filter((c) => c.hasPayment);
     } catch (error) {
         console.error('[GET_COURSES_WITH_CUSTOMER_ERROR]', error);
         throw new Error('강의별 매출을 불러오는데 실패했습니다.');
