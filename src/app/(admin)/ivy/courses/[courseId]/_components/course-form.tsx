@@ -116,7 +116,7 @@ export function CourseForm({ course, categories, teachers, productBadges }: Prop
         resolver: zodResolver(courseSchema),
         defaultValues: {
             ...course,
-            // ✅ null -> undefined 정리 (react-hook-form + zod에서 제일 흔한 에러 포인트)
+
             parentId: (course as any).parentId ?? undefined,
 
             description: course.description || '',
@@ -145,7 +145,7 @@ export function CourseForm({ course, categories, teachers, productBadges }: Prop
                 ...values,
                 originalPrice: values.originalPrice ?? undefined,
                 discountedPrice: values.discountedPrice ?? undefined,
-                // ✅ 혹시 null로 들어오면 undefined로 정리
+
                 parentId: (values as any).parentId ?? undefined,
             };
 

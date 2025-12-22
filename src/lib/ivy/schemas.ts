@@ -38,6 +38,7 @@ export const courseSchema = z
         accessDuration: z.coerce.number().optional(),
 
         productType: z.enum(['SIMPLE', 'OPTION']).default('SIMPLE'),
+        parentId: z.string().optional(),
 
         originalPrice: z.coerce.number().optional(),
         discountedPrice: z.preprocess(

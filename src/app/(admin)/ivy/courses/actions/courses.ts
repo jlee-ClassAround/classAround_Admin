@@ -20,6 +20,7 @@ export async function updateCourseAction(
 ) {
     try {
         const isAdmin = await getIsAdmin();
+        console.log(isAdmin);
         if (!isAdmin) {
             return { success: false, error: 'Unauthorized' };
         }

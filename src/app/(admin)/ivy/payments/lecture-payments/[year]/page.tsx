@@ -53,7 +53,7 @@ export default async function AdminLecturePaymentsPage({ params, searchParams }:
         getPaymentStats({ dateRange, status, type, courseId, search }),
     ]);
     const data = await getCoursesWithCustomer();
-    console.log(data);
+
     return (
         <div className="space-y-8">
             <h1 className="text-3xl font-bold">{year}년 결제 내역</h1>

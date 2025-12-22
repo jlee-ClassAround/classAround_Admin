@@ -6,7 +6,7 @@ import { DateRange } from 'react-day-picker';
 import { DateRangeFilter } from './date-range-filter';
 import { columns } from '../columns';
 import { StatusFilter } from './status-filter';
-import { downloadCSV } from '@/app/(admin)/cojooboo/payments/lecture-payments-detail/[id]/_actions/download-xlsx';
+
 import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
 import { TypeFilter } from './type-filter';
@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { SearchInput } from './search-input';
 import { AdminDataTable } from '@/components/admin-data-table';
 import { TossSyncButton } from '@/components/admin/toss-sync-button';
+import { downloadCSV } from '@/lib/csv';
 
 interface PaymentDataTableProps {
     data: any[];

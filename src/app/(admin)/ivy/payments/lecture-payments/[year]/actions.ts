@@ -10,8 +10,8 @@ function sum(nums: Array<number | null | undefined>): number {
 }
 
 type AllocItem = {
-    key: string; // courseId 또는 기타 카테고리 키(분모 포함용)
-    price: number; // discountedPrice ?? originalPrice
+    key: string;
+    price: number;
 };
 
 function allocateByRatio(items: AllocItem[], total: Money): Map<string, Money> {
@@ -22,7 +22,7 @@ function allocateByRatio(items: AllocItem[], total: Money): Map<string, Money> {
     const totalPrice = prices.reduce((a, b) => a + b, 0);
 
     if (totalPrice <= 0 || total === 0) {
-        for (const it of items) result.set(it.key, (result.get(it.key) ?? 0) + 0);
+        for (const it of items) result.set(it.key, 0);
         return result;
     }
 
@@ -38,8 +38,7 @@ function allocateByRatio(items: AllocItem[], total: Money): Map<string, Money> {
     }
 
     for (let i = 0; i < items.length; i++) {
-        const k = items[i].key;
-        result.set(k, (result.get(k) ?? 0) + allocs[i]);
+        result.set(items[i].key, (result.get(items[i].key) ?? 0) + allocs[i]);
     }
 
     return result;
@@ -57,6 +56,13 @@ type PaymentRow = {
 function dedupePayments(rows: PaymentRow[]): PaymentRow[] {
     const byKey = new Map<string, PaymentRow>();
 
+    const rank = (s: PaymentStatus): number => {
+        if (s === PaymentStatus.CANCELED) return 3;
+        if (s === PaymentStatus.PARTIAL_CANCELED) return 2;
+        if (s === PaymentStatus.DONE) return 1;
+        return 0;
+    };
+
     for (const r of rows) {
         const k = r.tossPaymentKey ?? `__NO_KEY__:${r.id}`;
         const prev = byKey.get(k);
@@ -65,13 +71,6 @@ function dedupePayments(rows: PaymentRow[]): PaymentRow[] {
             byKey.set(k, r);
             continue;
         }
-
-        const rank = (s: PaymentStatus): number => {
-            if (s === PaymentStatus.CANCELED) return 3;
-            if (s === PaymentStatus.PARTIAL_CANCELED) return 2;
-            if (s === PaymentStatus.DONE) return 1;
-            return 0;
-        };
 
         const merged: PaymentRow = {
             ...prev,
@@ -90,24 +89,31 @@ function dedupePayments(rows: PaymentRow[]): PaymentRow[] {
     return Array.from(byKey.values());
 }
 
-export async function getCoursesWithCustomer() {
+type CourseEntity = Awaited<ReturnType<typeof ivyDb.course.findMany>>[number];
+
+type CourseWithRevenue = CourseEntity & {
+    totalRevenue: Money;
+    totalRefund: Money;
+    totalPrice: Money;
+    hasPayment: boolean;
+};
+
+export async function getCoursesWithCustomer(): Promise<CourseWithRevenue[]> {
     try {
-        // ✅ 매출/환불에 포함할 PaymentStatus (결제 이력 있는 주문만)
         const paidStatuses: PaymentStatus[] = [
             PaymentStatus.DONE,
             PaymentStatus.CANCELED,
             PaymentStatus.PARTIAL_CANCELED,
         ];
 
-        // 1) 모든 강의 (타이틀 기반 main/variant 합치기 때문에 유지)
-        const courses = await ivyDb.course.findMany({
+        const courses: CourseEntity[] = await ivyDb.course.findMany({
             orderBy: { createdAt: 'desc' },
         });
 
         const courseIds: string[] = courses.map((c) => c.id);
         const courseIdSet = new Set<string>(courseIds);
 
-        // 2) ✅ Payment 테이블 기준으로 "결제 이력 있는 주문"만 가져오기
+        // ✅ 여기서 'COURSE' 문자열 -> ProductCategory.COURSE 로 수정
         const orders = await ivyDb.order.findMany({
             where: {
                 payments: {
@@ -117,7 +123,7 @@ export async function getCoursesWithCustomer() {
                 },
                 orderItems: {
                     some: {
-                        productCategory: 'COURSE',
+                        productCategory: ProductCategory.COURSE,
                         OR: [{ courseId: { in: courseIds } }, { productId: { in: courseIds } }],
                     },
                 },
@@ -148,17 +154,15 @@ export async function getCoursesWithCustomer() {
             },
         });
 
-        // 3) courseId별 매출/환불 누적 + ✅ "결제된 강의" Set
         const revenueMap = new Map<string, Money>();
         const refundMap = new Map<string, Money>();
-        const paidCourseSet = new Set<string>(); // ✅ payment 기준으로 실제 결제 이력 있는 강의만
+        const paidCourseSet = new Set<string>();
 
         for (const order of orders) {
             const paidPayments = dedupePayments(
                 order.payments.filter((p) => paidStatuses.includes(p.paymentStatus))
             );
 
-            // ✅ 결제 이력 있는 주문에 포함된 COURSE 아이템을 Set에 기록(금액 0이어도 포함)
             if (paidPayments.length > 0) {
                 for (const it of order.orderItems) {
                     if (it.productCategory !== ProductCategory.COURSE) continue;
@@ -172,7 +176,6 @@ export async function getCoursesWithCustomer() {
             const orderPaid: Money = sum(paidPayments.map((p) => p.amount));
             const orderRefund: Money = sum(paidPayments.map((p) => p.cancelAmount));
 
-            // ✅ 주문 아이템 전체(강의+전자책)로 분모 구성
             const allocItems: AllocItem[] = order.orderItems
                 .map((it, idx) => {
                     const price = (it.discountedPrice ?? it.originalPrice) || 0;
@@ -201,8 +204,7 @@ export async function getCoursesWithCustomer() {
             }
         }
 
-        // 4) Course에 합치기 + 결제여부 플래그
-        const coursesWithRevenue = courses.map((course) => {
+        const coursesWithRevenue: CourseWithRevenue[] = courses.map((course) => {
             const totalRevenue = revenueMap.get(course.id) ?? 0;
             const totalRefund = refundMap.get(course.id) ?? 0;
 
@@ -211,28 +213,51 @@ export async function getCoursesWithCustomer() {
                 totalRevenue,
                 totalRefund,
                 totalPrice: totalRevenue - totalRefund,
-                hasPayment: paidCourseSet.has(course.id), // ✅ 핵심
+                hasPayment: paidCourseSet.has(course.id),
             };
         });
 
-        // 5) 메인 강의 + 옵션(variant) 통합
-        const mainCourses = coursesWithRevenue.filter((course) =>
-            course.title.trim().endsWith(']')
-        );
+        // parentId 인덱스
+        const childrenByParent = new Map<string, CourseWithRevenue[]>();
+        for (const c of coursesWithRevenue) {
+            const parentId = (c as { parentId?: string | null }).parentId ?? null;
+            if (!parentId) continue;
+            if (!childrenByParent.has(parentId)) childrenByParent.set(parentId, []);
+            childrenByParent.get(parentId)!.push(c);
+        }
 
-        const merged = mainCourses.map((mainCourse) => {
-            const variants = coursesWithRevenue.filter(
-                (c) =>
-                    c.id !== mainCourse.id &&
-                    (c.title.startsWith(mainCourse.title + '-') ||
-                        c.title.startsWith(mainCourse.title + '_'))
-            );
+        const collectDescendants = (parentId: string): CourseWithRevenue[] => {
+            const out: CourseWithRevenue[] = [];
+            const visited = new Set<string>();
+            const queue: string[] = [parentId];
+
+            while (queue.length > 0) {
+                const pid = queue.shift() as string;
+                const children = childrenByParent.get(pid) ?? [];
+                for (const child of children) {
+                    if (visited.has(child.id)) continue;
+                    visited.add(child.id);
+                    out.push(child);
+                    queue.push(child.id);
+                }
+            }
+            return out;
+        };
+
+        // ✅ 메인 = parentId 없는 부모 강의 전체 (타이틀 규칙 제거)
+        const mainCourses: CourseWithRevenue[] = coursesWithRevenue.filter((c) => {
+            const parentId = (c as { parentId?: string | null }).parentId ?? null;
+            return !parentId;
+        });
+
+        const merged: CourseWithRevenue[] = mainCourses.map((mainCourse) => {
+            const variants = collectDescendants(mainCourse.id);
 
             const totalRevenue =
-                mainCourse.totalRevenue + variants.reduce((acc, v) => acc + v.totalRevenue, 0);
+                mainCourse.totalRevenue +
+                variants.reduce<Money>((acc, v) => acc + v.totalRevenue, 0);
             const totalRefund =
-                mainCourse.totalRefund + variants.reduce((acc, v) => acc + v.totalRefund, 0);
-
+                mainCourse.totalRefund + variants.reduce<Money>((acc, v) => acc + v.totalRefund, 0);
             const hasPayment = mainCourse.hasPayment || variants.some((v) => v.hasPayment);
 
             return {
@@ -244,7 +269,6 @@ export async function getCoursesWithCustomer() {
             };
         });
 
-        // ✅ 6) Payment 기준으로 "결제된 강의 항목"만 반환
         return merged.filter((c) => c.hasPayment);
     } catch (error) {
         console.error('[GET_COURSES_WITH_CUSTOMER_ERROR]', error);

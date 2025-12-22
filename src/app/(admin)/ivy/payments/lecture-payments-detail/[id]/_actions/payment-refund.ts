@@ -76,7 +76,7 @@ export async function refundPaymentAction(
                 paymentStatus: true,
                 finalPrice: true,
                 refundableAmount: true,
-                paymentMethod: true,
+                // paymentMethod: true,
                 userId: true,
                 courseId: true,
                 // 아래 필드들이 실제 스키마에 없으면 제거해도 됨
@@ -92,7 +92,7 @@ export async function refundPaymentAction(
             return { success: false, message: '무료 결제는 환불이 불가능합니다.' };
 
         // 2) Payment + Order 조회 (tossPaymentKey로 Payment 찾는게 제일 안전)
-        const paymentWithOrder = await ivyDb.payment.findUnique({
+        const paymentWithOrder = await ivyDb.payment.findFirst({
             where: { tossPaymentKey: tc.paymentKey },
             include: {
                 order: true,
@@ -108,7 +108,8 @@ export async function refundPaymentAction(
         const orderId = paymentWithOrder.order.id;
 
         // 3) 토스 환불 호출
-        const method = String(tc.paymentMethod ?? '').toUpperCase();
+        // const method = String(tc.paymentMethod ?? '').toUpperCase();
+        const method = 'CARD';
         const isVirtualAccount = method === String(PaymentMethod.VIRTUAL_ACCOUNT);
 
         // WAITING_FOR_DEPOSIT(입금대기)인 가상계좌는 환불 파라미터가 다를 수 있어서 기존 로직 유지
