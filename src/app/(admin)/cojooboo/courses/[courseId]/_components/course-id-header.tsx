@@ -4,10 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Course } from '@/generated/cojooboo';
 import { cn } from '@/lib/utils';
 
-import { Eye, ImageIcon } from 'lucide-react';
+import { Eye, ImageIcon, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import React from 'react';
+import { deleteCourseAction } from '../../actions/courses';
+import { toast } from 'sonner';
 
 interface Props {
     course: Course;
@@ -15,6 +18,30 @@ interface Props {
 
 export function CourseIdHeader({ course }: Props) {
     const pathname = usePathname();
+    const router = useRouter();
+
+    const [isLoading, setIsLoading] = React.useState(false);
+
+    const handleDelete = async () => {
+        if (!confirm('정말 삭제하시겠습니까? 삭제된 강의는 되돌릴 수 없습니다.')) return;
+
+        try {
+            setIsLoading(true);
+            const result = await deleteCourseAction(course.id);
+
+            if (!result.success) {
+                toast.error(result.error || '삭제 중 오류가 발생했습니다.');
+                return;
+            }
+
+            router.refresh();
+            toast.success('강의가 삭제되었습니다.');
+        } catch {
+            toast.error('삭제 중 오류가 발생했습니다.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     return (
         <div className="flex justify-between mb-6 items-start gap-x-5">
@@ -75,6 +102,10 @@ export function CourseIdHeader({ course }: Props) {
                         <Eye className="size-4" />
                         <span className="sr-only">미리보기</span>
                     </Link>
+                </Button>
+                <Button variant="ghost" size="icon" type="button" onClick={handleDelete}>
+                    <Trash2 className="size-4" />
+                    <span className="sr-only">강의 삭제</span>
                 </Button>
             </div>
         </div>
