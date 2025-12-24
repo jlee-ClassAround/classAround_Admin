@@ -49,6 +49,8 @@ export const courseSchema = z
 
         kakaoRoomLink: z.string().optional(),
         kakaoRoomPassword: z.string().optional(),
+        kakaoRoomLink2: z.string().optional(),
+        kakaoRoomPassword2: z.string().optional(),
 
         isFocusMode: z.coerce.boolean().default(false),
     })

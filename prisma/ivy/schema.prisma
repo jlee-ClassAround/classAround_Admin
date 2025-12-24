@@ -40,39 +40,41 @@ model User {
 }
 
 model Course {
-  id                String         @id @default(uuid())
-  title             String         @default("")
-  description       String?
-  productType       ProductType    @default(SIMPLE)
-  originalPrice     Int?
-  discountedPrice   Int?
-  showInInstallment Boolean        @default(false)
-  isTaxFree         Boolean        @default(false)
-  thumbnail         String?
-  isPublished       Boolean        @default(false)
-  isHidden          Boolean        @default(false)
-  isFocusMode       Boolean        @default(false)
-  isUpcoming        Boolean        @default(false)
-  endDate           DateTime?
-  maxPurchaseCount  Int?
-  accessDuration    Int?
-  kakaoRoomLink     String?
-  kakaoRoomPassword String?
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
-  categoryId        String?
-  parentId          String?
-  chapters          Chapter[]
-  category          Category?      @relation(fields: [categoryId], references: [id])
-  options           CourseOption[]
-  detailImages      DetailImage[]
-  enrollments       Enrollment[]
-  orderItems        OrderItem[]
-  reviews           Review[]
-  tossCustomers     TossCustomer[]
-  coupons           Coupon[]       @relation("CouponToCourse")
-  productBadge      ProductBadge[] @relation("CourseToProductBadge")
-  teachers          Teacher[]      @relation("CourseToTeacher")
+  id                 String         @id @default(uuid())
+  title              String         @default("")
+  description        String?
+  productType        ProductType    @default(SIMPLE)
+  originalPrice      Int?
+  discountedPrice    Int?
+  showInInstallment  Boolean        @default(false)
+  isTaxFree          Boolean        @default(false)
+  thumbnail          String?
+  isPublished        Boolean        @default(false)
+  isHidden           Boolean        @default(false)
+  isFocusMode        Boolean        @default(false)
+  isUpcoming         Boolean        @default(false)
+  endDate            DateTime?
+  maxPurchaseCount   Int?
+  accessDuration     Int?
+  kakaoRoomLink      String?
+  kakaoRoomPassword  String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  categoryId         String?
+  parentId           String?
+  kakaoRoomLink2     String?
+  kakaoRoomPassword2 String?
+  chapters           Chapter[]
+  category           Category?      @relation(fields: [categoryId], references: [id])
+  options            CourseOption[]
+  detailImages       DetailImage[]
+  enrollments        Enrollment[]
+  orderItems         OrderItem[]
+  reviews            Review[]
+  tossCustomers      TossCustomer[]
+  coupons            Coupon[]       @relation("CouponToCourse")
+  productBadge       ProductBadge[] @relation("CourseToProductBadge")
+  teachers           Teacher[]      @relation("CourseToTeacher")
 }
 
 model FreeCourse {

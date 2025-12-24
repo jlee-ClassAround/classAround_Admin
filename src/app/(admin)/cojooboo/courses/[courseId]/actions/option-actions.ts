@@ -7,11 +7,17 @@ export async function addOption(courseId: string) {
     const isAdmin = await getIsAdmin();
     if (!isAdmin) throw new Error('Unauthorized');
 
+    const existingCount = await cojoobooDb.courseOption.count({
+        where: { courseId },
+    });
+
+    const orderValue = existingCount === 0 ? 'first' : 'second';
     await cojoobooDb.courseOption.create({
         data: {
             courseId,
             name: '옵션명',
             originalPrice: 0,
+            order: orderValue,
         },
     });
 }
