@@ -128,6 +128,8 @@ export function CourseForm({ course, categories, teachers, productBadges }: Prop
             productBadgeIds: course.productBadge.map((badge) => badge.id),
             kakaoRoomLink: course.kakaoRoomLink || undefined,
             kakaoRoomPassword: course.kakaoRoomPassword || undefined,
+            kakaoRoomLink2: course.kakaoRoomLink || undefined,
+            kakaoRoomPassword2: course.kakaoRoomPassword || undefined,
         },
     });
 
