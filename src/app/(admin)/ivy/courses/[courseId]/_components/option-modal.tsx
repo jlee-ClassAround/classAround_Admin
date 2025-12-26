@@ -19,7 +19,7 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { optionSchema, OptionSchema } from '@/lib/ivy/schemas';
+import { optionSchema, type OptionSchema } from '@/lib/cojooboo/schemas';
 import { useOptionModal } from '@/store/use-option-modal';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -34,30 +34,22 @@ interface Props {
     courseId: string;
 }
 
+type OptionsKey = readonly ['options', string];
+type OptionKey = readonly ['option', string | null];
+
 export function OptionModal({ courseId }: Props) {
     const { isModalOpen, selectedOptionId, onCloseModal } = useOptionModal();
-
     const queryClient = useQueryClient();
 
+    const optionsKey: OptionsKey = ['options', courseId] as const;
+    const optionKey: OptionKey = ['option', selectedOptionId] as const;
+
     const { data: option, isPending } = useQuery({
-        queryKey: ['option', selectedOptionId],
+        queryKey: optionKey,
         queryFn: () => getOption(selectedOptionId),
-    });
 
-    const { mutateAsync: updateOptionMutation } = useMutation({
-        mutationFn: updateOption,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['option', selectedOptionId] });
-            queryClient.invalidateQueries({ queryKey: ['options', courseId] });
-
-            onCloseModal();
-            toast.success('옵션 수정 완료');
-
-            form.reset();
-        },
-        onError: () => {
-            toast.error('옵션 수정 실패');
-        },
+        enabled: Boolean(isModalOpen && selectedOptionId),
+        refetchOnWindowFocus: false,
     });
 
     const form = useForm<OptionSchema>({
@@ -66,6 +58,8 @@ export function OptionModal({ courseId }: Props) {
             name: '',
             originalPrice: undefined,
             discountedPrice: undefined,
+            isTaxFree: false,
+            maxPurchaseCount: undefined,
         },
     });
 
@@ -74,21 +68,74 @@ export function OptionModal({ courseId }: Props) {
     useEffect(() => {
         form.reset({
             ...option,
-            discountedPrice: option?.discountedPrice ?? undefined,
-            maxPurchaseCount: option?.maxPurchaseCount ?? undefined,
+            discountedPrice: (option as any)?.discountedPrice ?? undefined,
+            maxPurchaseCount: (option as any)?.maxPurchaseCount ?? undefined,
+            isTaxFree: Boolean((option as any)?.isTaxFree ?? false),
         });
     }, [option, isModalOpen]);
 
+    const { mutateAsync: updateOptionMutation } = useMutation({
+        mutationFn: updateOption,
+
+        onMutate: async (variables) => {
+            await queryClient.cancelQueries({ queryKey: optionsKey });
+            await queryClient.cancelQueries({ queryKey: optionKey });
+
+            const prevOptions = queryClient.getQueryData<any[]>(optionsKey);
+            const prevOption = queryClient.getQueryData<any>(optionKey);
+
+            const patch = {
+                ...variables.values,
+
+                originalPrice: Number((variables.values as any).originalPrice ?? 0),
+                discountedPrice:
+                    (variables.values as any).discountedPrice == null
+                        ? null
+                        : Number((variables.values as any).discountedPrice),
+            };
+
+            queryClient.setQueryData(optionKey, (old: any) => {
+                if (!old) return old;
+                return { ...old, ...patch };
+            });
+
+            queryClient.setQueryData(optionsKey, (old: any[]) => {
+                const list = old ?? [];
+                return list.map((o) => (o.id === variables.optionId ? { ...o, ...patch } : o));
+            });
+
+            return { prevOptions, prevOption };
+        },
+
+        onError: (_err, _vars, ctx) => {
+            if (ctx?.prevOptions) queryClient.setQueryData(optionsKey, ctx.prevOptions);
+            if (ctx?.prevOption) queryClient.setQueryData(optionKey, ctx.prevOption);
+            toast.error('옵션 수정 실패');
+        },
+
+        onSuccess: async () => {
+            await queryClient.refetchQueries({ queryKey: optionsKey });
+            await queryClient.refetchQueries({ queryKey: optionKey });
+
+            onCloseModal();
+            toast.success('옵션 수정 완료');
+            form.reset();
+        },
+    });
+
     const onSubmit = async (values: OptionSchema) => {
-        const processedValues = {
+        const processedValues: any = {
             ...values,
             discountedPrice: values.discountedPrice ?? null,
             maxPurchaseCount: values.maxPurchaseCount ?? null,
+            isTaxFree: values.isTaxFree ?? false,
+            originalPrice: Number(values.originalPrice ?? 0),
         };
+
         await updateOptionMutation({
             optionId: selectedOptionId ?? '',
             values: processedValues,
-        });
+        } as any);
     };
 
     return (
@@ -107,6 +154,7 @@ export function OptionModal({ courseId }: Props) {
                                     옵션 이름, 원가, 할인가를 수정할 수 있습니다.
                                 </DialogDescription>
                             </DialogHeader>
+
                             <div className="space-y-4">
                                 <FormField
                                     name="name"
@@ -121,6 +169,7 @@ export function OptionModal({ courseId }: Props) {
                                         </FormItem>
                                     )}
                                 />
+
                                 <FormField
                                     name="originalPrice"
                                     control={form.control}
@@ -138,6 +187,7 @@ export function OptionModal({ courseId }: Props) {
                                         </FormItem>
                                     )}
                                 />
+
                                 <FormField
                                     name="discountedPrice"
                                     control={form.control}
@@ -155,7 +205,7 @@ export function OptionModal({ courseId }: Props) {
                                         </FormItem>
                                     )}
                                 />
-                                {/* 세금 설정 */}
+
                                 <FormField
                                     name="isTaxFree"
                                     control={form.control}
@@ -178,7 +228,7 @@ export function OptionModal({ courseId }: Props) {
                                         </FormItem>
                                     )}
                                 />
-                                {/* 최대 구매 가능 수량 */}
+
                                 <FormField
                                     name="maxPurchaseCount"
                                     control={form.control}
@@ -200,8 +250,15 @@ export function OptionModal({ courseId }: Props) {
                                     )}
                                 />
                             </div>
+
                             <DialogFooter>
-                                <Button type="submit">옵션 수정</Button>
+                                <Button type="submit" disabled={isSubmitting}>
+                                    {isSubmitting ? (
+                                        <Loader2 className="animate-spin" />
+                                    ) : (
+                                        '옵션 수정'
+                                    )}
+                                </Button>
                             </DialogFooter>
                         </form>
                     </Form>
