@@ -112,6 +112,7 @@ model CourseOption {
   maxPurchaseCount Int?
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
+  order            String?
   course           Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
   enrollments      Enrollment[]
 }

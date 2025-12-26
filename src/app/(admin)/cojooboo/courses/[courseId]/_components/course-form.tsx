@@ -98,8 +98,8 @@ export function CourseForm({ course, categories, teachers, productBadges }: Prop
     >({
         queryKey: ['parentCourses', course.id],
         queryFn: async () => {
-            const list = await getCourses(); // ✅ server action 호출
-            return list.filter((c) => c.id !== course.id); // 자기 자신 제외
+            const list = await getCourses();
+            return list.filter((c) => c.id !== course.id);
         },
         staleTime: 60_000,
     });
