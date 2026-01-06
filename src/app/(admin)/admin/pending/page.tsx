@@ -1,7 +1,9 @@
 import { Button } from '@/components/ui/button';
 import { caDb } from '@/lib/caDb';
 import { approveAdminAction, rejectAdminAction } from './actions';
-import { RejectButton } from './reject-button';
+
+import { ApproveButton } from './_components/approve-button';
+import { RejectButton } from './_components/reject-button';
 
 export default async function PendingUsersPage() {
     const users = await caDb.user.findMany({
@@ -61,19 +63,7 @@ export default async function PendingUsersPage() {
                                     <td className="px-4 py-3 text-center">
                                         <div className="flex justify-center gap-2">
                                             {/* 승인 */}
-                                            <form action={approveAdminAction}>
-                                                <input
-                                                    type="hidden"
-                                                    name="userId"
-                                                    value={user.id}
-                                                />
-                                                <Button
-                                                    size="sm"
-                                                    className="bg-green-500 hover:bg-green-600"
-                                                >
-                                                    승인
-                                                </Button>
-                                            </form>
+                                            <ApproveButton userId={user.id} />
 
                                             {/* 거절 */}
                                             <RejectButton

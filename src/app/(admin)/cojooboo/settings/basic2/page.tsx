@@ -1,8 +1,9 @@
+import { Card } from '@/components/ui/card';
 import { SettingForm } from './_components/setting-form';
-import { ivyDb } from '@/lib/ivyDb';
+import { cojoobooDb } from '@/lib/cojoobooDb';
 
 export default async function BasicSettingsPage() {
-    const siteSetting = await ivyDb.siteSetting.findUnique({
+    const siteSetting = await cojoobooDb.siteSetting.findUnique({
         where: {
             id: 1,
         },

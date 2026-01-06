@@ -128,6 +128,8 @@ export function CourseForm({ course, categories, teachers, productBadges }: Prop
             productBadgeIds: course.productBadge.map((badge) => badge.id),
             kakaoRoomLink: course.kakaoRoomLink || undefined,
             kakaoRoomPassword: course.kakaoRoomPassword || undefined,
+            kakaoRoomLink2: course.kakaoRoomLink2 || undefined,
+            kakaoRoomPassword2: course.kakaoRoomPassword2 || undefined,
         },
     });
 
@@ -680,6 +682,50 @@ export function CourseForm({ course, categories, teachers, productBadges }: Prop
                                     </FormItem>
                                 )}
                             />
+                            {form.watch('productType') === 'OPTION' && (
+                                <>
+                                    <FormField
+                                        name="kakaoRoomLink2"
+                                        control={form.control}
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>카카오톡 링크2</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        placeholder="카카오톡 링크를 입력해주세요."
+                                                        disabled={isSubmitting}
+                                                        {...field}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                                <FormDescription>
+                                                    결제완료시 고객에게 안내됩니다.
+                                                </FormDescription>
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        name="kakaoRoomPassword2"
+                                        control={form.control}
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>카카오톡 입장코드2</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        placeholder="카카오톡 입장코드를 입력해주세요."
+                                                        disabled={isSubmitting}
+                                                        {...field}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                                <FormDescription>
+                                                    결제완료시 고객에게 안내됩니다.
+                                                </FormDescription>
+                                            </FormItem>
+                                        )}
+                                    />
+                                </>
+                            )}
                         </Card>
 
                         <Card className="p-6 space-y-6">

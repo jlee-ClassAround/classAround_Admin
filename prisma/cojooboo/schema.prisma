@@ -11,70 +11,77 @@ datasource db {
 }
 
 model User {
-  id              String           @id @default(uuid())
-  username        String?
-  nickname        String?
-  email           String?
-  password        String?
-  phone           String?
-  avatar          String?
-  kakaoId         String?          @unique
-  kajabiContactId String?          @unique
-  optedIn         Boolean          @default(false)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  roleId          String?
-  applyCourses    ApplyCourse[]
-  contacts        Contact[]
-  ebookPurchases  EbookPurchase[]
-  enrollments     Enrollment[]
-  orders          Order[]
-  revenues        Revenue[]
-  revieww         Review[]
-  tossCustomers   TossCustomer[]
-  transactions    Transaction[]
-  Role            Role?            @relation(fields: [roleId], references: [id])
-  userBillingInfo UserBillingInfo?
-  userCoupons     UserCoupon[]
-  userProgresses  UserProgress[]
-  userTags        UserTag[]
+  id                                    String           @id @default(uuid())
+  username                              String?
+  nickname                              String?
+  email                                 String?
+  password                              String?
+  phone                                 String?
+  avatar                                String?
+  kakaoId                               String?          @unique
+  kajabiContactId                       String?          @unique
+  optedIn                               Boolean          @default(false)
+  createdAt                             DateTime         @default(now())
+  updatedAt                             DateTime         @updatedAt
+  roleId                                String?
+  applyCourses                          ApplyCourse[]
+  CashPayment_CashPayment_adminIdToUser CashPayment[]    @relation("CashPayment_adminIdToUser")
+  CashPayment_CashPayment_userIdToUser  CashPayment[]    @relation("CashPayment_userIdToUser")
+  contacts                              Contact[]
+  ebookPurchases                        EbookPurchase[]
+  enrollments                           Enrollment[]
+  orders                                Order[]
+  revenues                              Revenue[]
+  revieww                               Review[]
+  tossCustomers                         TossCustomer[]
+  transactions                          Transaction[]
+  Role                                  Role?            @relation(fields: [roleId], references: [id])
+  userBillingInfo                       UserBillingInfo?
+  userCoupons                           UserCoupon[]
+  userProgresses                        UserProgress[]
+  userTags                              UserTag[]
 }
 
 model Course {
-  id                String         @id @default(uuid())
-  title             String         @default("")
-  description       String?
-  productType       ProductType    @default(SIMPLE)
-  originalPrice     Int?
-  discountedPrice   Int?
-  showInInstallment Boolean        @default(false)
-  thumbnail         String?
-  isPublished       Boolean        @default(false)
-  isFocusMode       Boolean        @default(false)
-  isUpcoming        Boolean        @default(false)
-  endDate           DateTime?
-  accessDuration    Int?
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
-  categoryId        String?
-  isTaxFree         Boolean        @default(false)
-  kakaoRoomLink     String?
-  kakaoRoomPassword String?
-  maxPurchaseCount  Int?
-  isHidden          Boolean        @default(false)
-  cashDiscount      Int?
-  parentId          String?
-  chapters          Chapter[]
-  category          Category?      @relation(fields: [categoryId], references: [id])
-  options           CourseOption[]
-  detailImages      DetailImage[]
-  enrollments       Enrollment[]
-  orderItems        OrderItem[]
-  reviews           Review[]
-  tossCustomers     TossCustomer[]
-  coupons           Coupon[]       @relation("CouponToCourse")
-  productBadge      ProductBadge[] @relation("CourseToProductBadge")
-  teachers          Teacher[]      @relation("CourseToTeacher")
+  id                 String         @id @default(uuid())
+  title              String         @default("")
+  description        String?
+  productType        ProductType    @default(SIMPLE)
+  originalPrice      Int?
+  discountedPrice    Int?
+  showInInstallment  Boolean        @default(false)
+  thumbnail          String?
+  isPublished        Boolean        @default(false)
+  isFocusMode        Boolean        @default(false)
+  isUpcoming         Boolean        @default(false)
+  endDate            DateTime?
+  accessDuration     Int?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  categoryId         String?
+  isTaxFree          Boolean        @default(false)
+  kakaoRoomLink      String?
+  kakaoRoomPassword  String?
+  maxPurchaseCount   Int?
+  isHidden           Boolean        @default(false)
+  cashDiscount       Int?
+  freeCourseId       String?
+  parentId           String?
+  kakaoRoomLink2     String?
+  kakaoRoomPassword2 String?
+  CashPayment        CashPayment[]
+  chapters           Chapter[]
+  category           Category?      @relation(fields: [categoryId], references: [id])
+  FreeCourse         FreeCourse?    @relation(fields: [freeCourseId], references: [id])
+  options            CourseOption[]
+  detailImages       DetailImage[]
+  enrollments        Enrollment[]
+  orderItems         OrderItem[]
+  reviews            Review[]
+  tossCustomers      TossCustomer[]
+  coupons            Coupon[]       @relation("CouponToCourse")
+  productBadge       ProductBadge[] @relation("CourseToProductBadge")
+  teachers           Teacher[]      @relation("CourseToTeacher")
 }
 
 model FreeCourse {
@@ -96,6 +103,7 @@ model FreeCourse {
   location          String?
   isHidden          Boolean        @default(false)
   applyCourses      ApplyCourse[]
+  Course            Course[]
   detailImages      DetailImage[]
   category          Category?      @relation(fields: [categoryId], references: [id])
   productBadge      ProductBadge[] @relation("FreeCourseToProductBadge")
@@ -112,6 +120,7 @@ model CourseOption {
   updatedAt        DateTime     @updatedAt
   isTaxFree        Boolean      @default(false)
   maxPurchaseCount Int?
+  order            String?
   course           Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
   enrollments      Enrollment[]
 }
@@ -514,6 +523,7 @@ model Ebook {
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
   isTaxFree         Boolean         @default(false)
+  CashPayment       CashPayment[]
   detailImages      DetailImage[]
   category          Category?       @relation(fields: [categoryId], references: [id])
   purchases         EbookPurchase[]
@@ -725,6 +735,29 @@ model RefundReceiveAccount {
   updatedAt        DateTime       @updatedAt
   virtualAccountId String         @unique
   virtualAccount   VirtualAccount @relation(fields: [virtualAccountId], references: [id], onDelete: Cascade)
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model CashPayment {
+  id                             String    @id
+  productTitle                   String
+  productType                    String
+  price                          Int
+  cancelAmount                   Int?
+  paymentStatus                  String
+  cancelReason                   String?
+  userId                         String?
+  adminId                        String?
+  courseId                       String?
+  ebookId                        String?
+  createdAt                      DateTime  @default(now())
+  updatedAt                      DateTime
+  canceledAt                     DateTime? @db.Timestamptz(6)
+  completedAt                    DateTime? @db.Timestamptz(6)
+  User_CashPayment_adminIdToUser User?     @relation("CashPayment_adminIdToUser", fields: [adminId], references: [id])
+  Course                         Course?   @relation(fields: [courseId], references: [id])
+  Ebook                          Ebook?    @relation(fields: [ebookId], references: [id])
+  User_CashPayment_userIdToUser  User?     @relation("CashPayment_userIdToUser", fields: [userId], references: [id])
 }
 
 enum ProductType {
