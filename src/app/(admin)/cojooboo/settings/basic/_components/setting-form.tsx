@@ -40,11 +40,13 @@ export function SettingForm({ initialData }: Props) {
             youtubeLink: initialData?.youtubeLink || '',
             instagramLink: initialData?.instagramLink || '',
             naverCafeLink: initialData?.naverCafeLink || '',
-            communityLink: initialData?.communityLink || '',
             teacherApplyLink: initialData?.teacherApplyLink || '',
             recruitmentLink: initialData?.recruitmentLink || '',
+            communityLink: initialData?.communityLink || '',
+
             businessName: initialData?.businessName || '',
             businessInfo: initialData?.businessInfo || '',
+
             courseRefundPolicy: initialData?.courseRefundPolicy || '',
             ebookRefundPolicy: initialData?.ebookRefundPolicy || '',
             marketingPolicy: initialData?.marketingPolicy || '',
