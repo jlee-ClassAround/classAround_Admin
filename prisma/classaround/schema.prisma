@@ -13,14 +13,14 @@ datasource db {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model Role {
-  id   String @id
+  id   String @id(map: "role_pkey")
   User User[]
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model User {
   id        String    @id(map: "users_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId    String?   @unique
+  userId    String?   @unique(map: "user_userid_key")
   password  String
   email     String?   @db.VarChar(255)
   roleId    String    @default("admin") @db.VarChar(50)
@@ -28,5 +28,23 @@ model User {
   updatedAt DateTime? @db.Timestamptz(6)
   username  String?
   phone     String?
-  Role      Role      @relation(fields: [roleId], references: [id])
+  Role      Role      @relation(fields: [roleId], references: [id], map: "user_roleid_fkey")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model Teacher {
+  id        String   @id
+  username  String?
+  nickname  String?
+  email     String?
+  password  String?
+  phone     String?
+  avatar    String?
+  kakaoId   String?  @unique
+  optedIn   Boolean  @default(false)
+  createdAt DateTime @default(now()) @db.Timestamp(6)
+  updatedAt DateTime @db.Timestamp(6)
+  isRegist  Boolean  @default(false)
+  tId       String?
+  brand     String?
 }

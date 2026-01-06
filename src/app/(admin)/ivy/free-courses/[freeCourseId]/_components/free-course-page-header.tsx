@@ -72,6 +72,7 @@ export function FreeCoursePageHeader({ freeCourse }: Props) {
                 <Button variant="ghost" size="icon" asChild>
                     <Link
                         href={`${process.env.NEXT_PUBLIC_IVY_APP_URL}/free-courses/${freeCourse.id}`}
+                        target="_blank"
                     >
                         <Eye className="size-4" />
                         <span className="sr-only">미리보기</span>

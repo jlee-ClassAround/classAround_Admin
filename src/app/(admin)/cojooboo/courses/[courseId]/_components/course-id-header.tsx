@@ -98,7 +98,10 @@ export function CourseIdHeader({ course }: Props) {
             </div>
             <div className="flex items-center gap-x-2">
                 <Button variant="ghost" size="icon" asChild>
-                    <Link href={`${process.env.NEXT_PUBLIC_COJOOBOO_APP_URL}/courses/${course.id}`}>
+                    <Link
+                        href={`${process.env.NEXT_PUBLIC_COJOOBOO_APP_URL}/courses/${course.id}`}
+                        target="_blank"
+                    >
                         <Eye className="size-4" />
                         <span className="sr-only">미리보기</span>
                     </Link>

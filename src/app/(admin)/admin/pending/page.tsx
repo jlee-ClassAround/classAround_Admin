@@ -1,8 +1,9 @@
 import { Button } from '@/components/ui/button';
 import { caDb } from '@/lib/caDb';
 import { approveAdminAction, rejectAdminAction } from './actions';
-import { RejectButton } from './reject-button';
+
 import { ApproveButton } from './_components/approve-button';
+import { RejectButton } from './_components/reject-button';
 
 export default async function PendingUsersPage() {
     const users = await caDb.user.findMany({

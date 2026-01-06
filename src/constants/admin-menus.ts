@@ -232,6 +232,25 @@ export const adminMenuGroups: AdminMenuGroup[] = [
         ],
     },
     {
+        title: '강사계정 관리(개발중)',
+        prefix: 'admin',
+        icon: UsersRound,
+        menus: [
+            {
+                label: '강사계정 목록',
+                href: '/admin/teachers',
+                icon: UsersRound,
+                subMenus: [],
+            },
+            {
+                label: '강사계정 신청',
+                href: '/admin/teachers-pending',
+                icon: UserPlus,
+                subMenus: [],
+            },
+        ],
+    },
+    {
         title: '어드민 관리',
         prefix: 'admin',
         icon: UsersRound,
