@@ -65,7 +65,6 @@ model Course {
   maxPurchaseCount   Int?
   isHidden           Boolean        @default(false)
   cashDiscount       Int?
-  freeCourseId       String?
   parentId           String?
   kakaoRoomLink2     String?
   kakaoRoomPassword2 String?
