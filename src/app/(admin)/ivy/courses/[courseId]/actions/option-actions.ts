@@ -7,11 +7,16 @@ export async function addOption(courseId: string) {
     const isAdmin = await getIsAdmin();
     if (!isAdmin) throw new Error('Unauthorized');
 
+    const existingCount = await ivyDb.courseOption.count({
+        where: { courseId },
+    });
+    const orderValue = existingCount === 0 ? 'first' : 'second';
     await ivyDb.courseOption.create({
         data: {
             courseId,
             name: '옵션명',
             originalPrice: 0,
+            order: orderValue,
         },
     });
 }
