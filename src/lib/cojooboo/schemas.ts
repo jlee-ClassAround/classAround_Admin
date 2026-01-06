@@ -350,23 +350,36 @@ export type RevenueSchema = z.infer<typeof revenueSchema>;
 
 // 사이트 기본 설정 스키마
 export const siteSettingSchema = z.object({
-    siteTitle: z.string().optional(),
-    siteDescription: z.string().optional(),
-    favicon: z.string().optional(),
-    openGraphImage: z.string().optional(),
+    // siteTitle: z.string().optional(),
+    // siteDescription: z.string().optional(),
+    // favicon: z.string().optional(),
+    // openGraphImage: z.string().optional(),
 
-    businessName: z.string().optional(),
-    businessInfo: z.string().optional(),
+    // businessName: z.string().optional(),
+    // businessInfo: z.string().optional(),
 
-    gtmId: z.string().optional(),
+    // gtmId: z.string().optional(),
 
+    // contactLink: z.string().optional(),
+    // youtubeLink: z.string().optional(),
+    // instagramLink: z.string().optional(),
+    // naverCafeLink: z.string().optional(),
+    // teacherApplyLink: z.string().optional(),
+    // recruitmentLink: z.string().optional(),
+    // communityLink: z.string().optional(),
+
+    // courseRefundPolicy: z.string().optional(),
+    // ebookRefundPolicy: z.string().optional(),
+    // marketingPolicy: z.string().optional(),
     contactLink: z.string().optional(),
     youtubeLink: z.string().optional(),
     instagramLink: z.string().optional(),
     naverCafeLink: z.string().optional(),
+    communityLink: z.string().optional(),
     teacherApplyLink: z.string().optional(),
     recruitmentLink: z.string().optional(),
-
+    businessName: z.string().optional(),
+    businessInfo: z.string().optional(),
     courseRefundPolicy: z.string().optional(),
     ebookRefundPolicy: z.string().optional(),
     marketingPolicy: z.string().optional(),
