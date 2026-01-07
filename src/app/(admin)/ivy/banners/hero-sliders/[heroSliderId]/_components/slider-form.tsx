@@ -54,9 +54,9 @@ export function SliderForm({ initialData }: Props) {
     const onSubmit = async (values: SliderSchema) => {
         try {
             if (initialData) {
-                await axios.patch(`/api/banners/hero-sliders/${initialData.id}`, values);
+                await axios.patch(`/api/ivy/banners/hero-sliders/${initialData.id}`, values);
             } else {
-                await axios.post('/api/banners/hero-sliders', values);
+                await axios.post('/api/ivy/banners/hero-sliders', values);
             }
             toast.success('정상적으로 처리되었습니다.');
             router.push('/ivy/banners/hero-sliders');

@@ -1,4 +1,4 @@
-import { ivyDb } from '@/lib/ivyDb';
+import { cojoobooDb } from '@/lib/cojoobooDb';
 import { SliderForm } from './_components/slider-form';
 import { Card } from '@/components/ui/card';
 
@@ -8,7 +8,7 @@ interface Props {
 
 export default async function HeroSliderPage({ params }: Props) {
     const { heroSliderId } = await params;
-    const heroSlider = await ivyDb.heroSlider.findUnique({
+    const heroSlider = await cojoobooDb.heroSlider.findUnique({
         where: {
             id: heroSliderId,
         },
