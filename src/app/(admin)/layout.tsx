@@ -16,7 +16,7 @@ export const metadata: Metadata = {
         template: '%s - 클래스어라운드',
     },
     description: '클래스어라운드 관리자',
-    icons: { icon: '/favicon.svg' },
+    icons: { icon: '/classaround_favicon.png' },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
