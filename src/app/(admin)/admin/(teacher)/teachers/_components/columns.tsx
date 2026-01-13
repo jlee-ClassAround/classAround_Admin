@@ -12,13 +12,13 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { dateTimeFormat } from '@/utils/formats';
 import { ColumnDef } from '@tanstack/react-table';
-import { User as UserIcon, Loader2, ImageIcon, Quote } from 'lucide-react';
+import { User as UserIcon, Loader2, ImageIcon, Quote, Trash2 } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
 import { Teacher } from '@/generated/classaround';
-import { getBrandTeachers, updateTeacherAction } from '../actions';
+import { deleteTeacherAction, getBrandTeachers, updateTeacherAction } from '../actions';
 
 const BRANDS = ['cojooboo', 'ivy'];
 
@@ -83,7 +83,51 @@ export const columns: ColumnDef<Teacher>[] = [
             </div>
         ),
     },
+    {
+        id: 'actions',
+        header: () => <div className="text-center">관리</div>,
+        cell: ({ row }) => <DeleteCell teacher={row.original} />,
+    },
 ];
+function DeleteCell({ teacher }: { teacher: Teacher }) {
+    const router = useRouter();
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const onDelete = async () => {
+        if (!confirm(`${teacher.username} 강사의 계정을 정말 삭제하시겠습니까?`)) return;
+
+        setIsDeleting(true);
+        try {
+            const res = await deleteTeacherAction(teacher.id);
+            if (res.success) {
+                toast.success('강사 계정이 삭제되었습니다.');
+                router.refresh();
+            } else {
+                toast.error('삭제에 실패했습니다.');
+            }
+        } catch (error) {
+            toast.error('오류가 발생했습니다.');
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    return (
+        <div className="flex justify-center">
+            <button
+                onClick={onDelete}
+                disabled={isDeleting}
+                className="p-2 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
+            >
+                {isDeleting ? (
+                    <Loader2 className="size-4 animate-spin" />
+                ) : (
+                    <Trash2 className="size-4" />
+                )}
+            </button>
+        </div>
+    );
+}
 
 function BrandCell({ teacher }: { teacher: Teacher }) {
     const router = useRouter();

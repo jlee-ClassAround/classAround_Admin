@@ -95,3 +95,15 @@ export async function updateTeacherAction(
         return { success: false };
     }
 }
+
+export async function deleteTeacherAction(id: string) {
+    try {
+        await caDb.teacher.delete({
+            where: { id },
+        });
+        return { success: true };
+    } catch (error) {
+        console.error('강사 삭제 오류:', error);
+        return { success: false };
+    }
+}

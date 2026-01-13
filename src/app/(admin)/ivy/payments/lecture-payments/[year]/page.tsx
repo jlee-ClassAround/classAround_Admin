@@ -1,9 +1,4 @@
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-
-import { getPayments } from '../_actions/get-payments';
-import { getDailyStats } from '../../../_actions/payments/get-daily-stats';
-import { getAdminCourses } from '../../../_actions/courses/get-admin-courses';
 import { PaymentStats } from '../../history/_components/payment-stats';
 import { PaymentDataTable } from '../_components';
 import { columns } from './columns';

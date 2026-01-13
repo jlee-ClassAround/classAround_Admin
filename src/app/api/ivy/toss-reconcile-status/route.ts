@@ -29,12 +29,12 @@ export async function POST(req: NextRequest) {
         const targetIds = allRelated.map((c) => c.id);
 
         const tossCustomers = await ivyDb.tossCustomer.findMany({
-            where: { courseId: { in: targetIds } }, // ✅ 목록과 동일한 범위 조회
+            where: { courseId: { in: targetIds } },
         });
 
         let updatedCount = 0;
         for (const tc of tossCustomers) {
-            const paymentWithOrder = await ivyDb.payment.findUnique({
+            const paymentWithOrder = await ivyDb.payment.findFirst({
                 where: { tossPaymentKey: tc.paymentKey },
                 include: { order: true },
             });
@@ -47,7 +47,6 @@ export async function POST(req: NextRequest) {
                 );
                 if (desired.shouldUpdate) {
                     if (!dryRun) {
-                        // ✅ 실제 DB 수정 (Order, Payment)
                         await ivyDb.$transaction([
                             ivyDb.order.update({
                                 where: { id: paymentWithOrder.order.id },
