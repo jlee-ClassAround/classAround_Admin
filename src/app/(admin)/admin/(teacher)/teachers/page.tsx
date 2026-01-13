@@ -1,9 +1,11 @@
-import NotFound from '../../not-found';
-import { getAdminUsers } from './actions';
 import { Card } from '@/components/ui/card';
 import { AdminDataTable } from '@/components/admin-data-table';
-import { columns } from './columns';
+
 import { getIsSuperAdmin } from '@/utils/auth/is-super-admin';
+
+import { getTeachers } from './actions';
+import NotFound from '@/app/(auth)/not-found';
+import { columns } from './_components/columns';
 
 interface Props {
     searchParams: Promise<{
@@ -15,7 +17,8 @@ interface Props {
     }>;
 }
 
-export default async function AdminUsersPage({ searchParams }: Props) {
+export default async function TeachersPage({ searchParams }: Props) {
+    // 1. 권한 체크 (필요시)
     const isSuperAdmin = await getIsSuperAdmin();
     if (!isSuperAdmin) return NotFound();
 
@@ -26,7 +29,8 @@ export default async function AdminUsersPage({ searchParams }: Props) {
     const sort = params.sort || 'createdAt';
     const order = params.order || 'desc';
 
-    const { users, totalCount, totalPages, serverSorting } = await getAdminUsers({
+    // 2. 강사 데이터 호출 (승인된 강사만 가져오도록 액션에서 처리)
+    const { teachers, totalCount, totalPages, serverSorting } = await getTeachers({
         currentPage,
         pageSize,
         search,
@@ -38,18 +42,17 @@ export default async function AdminUsersPage({ searchParams }: Props) {
         <div className="space-y-5">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-xl font-semibold">관리자 목록</h1>
+                    <h1 className="text-xl font-semibold">강사 관리</h1>
                     <p className="text-sm text-muted-foreground">
-                        관리자 또는 슈퍼 관리자 권한을 가진 계정을 확인할 수 있습니다.
+                        승인된 강사 목록을 확인하고 관리할 수 있습니다.
                     </p>
                 </div>
-                {/* <DownloadCsvButton users={users} /> */}
             </div>
             <Card className="p-8">
                 <AdminDataTable
                     columns={columns}
-                    data={users}
-                    searchPlaceholder="관리자 계정을 검색해보세요."
+                    data={teachers}
+                    searchPlaceholder="강사 이름 또는 이메일로 검색해보세요."
                     isServerSide={true}
                     totalCount={totalCount}
                     currentPage={currentPage}

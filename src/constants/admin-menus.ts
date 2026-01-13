@@ -1,4 +1,3 @@
-// src/constants/admin-menus.ts
 import type { ComponentType } from 'react';
 import {
     Bitcoin,
@@ -52,6 +51,26 @@ export interface AdminMenuGroup {
     menus: AdminMenu[];
     onlySuperAdmin?: boolean;
 }
+
+/* ---------- 연도 자동 생성 헬퍼 ---------- */
+/**
+ * 2025년부터 현재 연도(2026년)까지의 메뉴를 자동으로 생성합니다.
+ */
+const generateYearlyPaymentMenus = (): AdminSubSubMenu[] => {
+    const startYear = 2025;
+    const currentYear = new Date().getFullYear();
+    const yearMenus: AdminSubSubMenu[] = [];
+
+    for (let year = startYear; year <= currentYear; year++) {
+        yearMenus.push({
+            label: `${year}년도`,
+            href: `/payments/lecture-payments/${year}`,
+        });
+    }
+
+    // 최신 연도가 상단에 오도록 역순 정렬합니다.
+    return yearMenus.reverse();
+};
 
 /* ---------- 기본 메뉴 ---------- */
 export const baseAdminMenus: AdminMenu[] = [
@@ -119,24 +138,15 @@ export const baseAdminMenus: AdminMenu[] = [
             {
                 label: '강의별 결제내역',
                 href: '/payments/lecture-payments',
-                subMenus: [
-                    {
-                        label: '2025년도',
-                        href: '/payments/lecture-payments/2025',
-                    },
-                ],
+                subMenus: generateYearlyPaymentMenus(),
             },
         ],
     },
-
     {
         label: '사용자 관리',
         icon: Users,
         href: '/users',
-        subMenus: [
-            { label: '전체 사용자', href: '/users/all' },
-            // { label: '관리자 목록', href: '/users', onlySuperAdmin: true },
-        ],
+        subMenus: [{ label: '전체 사용자', href: '/users/all' }],
     },
     {
         label: '공지사항',

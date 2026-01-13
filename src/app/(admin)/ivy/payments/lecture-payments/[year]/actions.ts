@@ -1,7 +1,7 @@
 'use server';
 
 import { ivyDb } from '@/lib/ivyDb';
-import { PaymentStatus, ProductCategory } from '@/generated/ivy';
+import { PaymentStatus, ProductCategory, Prisma } from '@/generated/ivy';
 
 type Money = number;
 
@@ -22,12 +22,12 @@ function allocateByRatio(items: AllocItem[], total: Money): Map<string, Money> {
     const totalPrice = prices.reduce((a, b) => a + b, 0);
 
     if (totalPrice <= 0 || total === 0) {
-        for (const it of items) result.set(it.key, 0);
+        for (const it of items) result.set(it.key, (result.get(it.key) ?? 0) + 0);
         return result;
     }
 
     const allocs: number[] = prices.map((p) => Math.floor((total * p) / totalPrice));
-    const used = allocs.reduce((a, b) => a + b, 0);
+    let used = allocs.reduce((a, b) => a + b, 0);
     let remain = total - used;
 
     let idx = 0;
@@ -38,7 +38,8 @@ function allocateByRatio(items: AllocItem[], total: Money): Map<string, Money> {
     }
 
     for (let i = 0; i < items.length; i++) {
-        result.set(items[i].key, (result.get(items[i].key) ?? 0) + allocs[i]);
+        const k = items[i].key;
+        result.set(k, (result.get(k) ?? 0) + allocs[i]);
     }
 
     return result;
@@ -56,17 +57,10 @@ type PaymentRow = {
 function dedupePayments(rows: PaymentRow[]): PaymentRow[] {
     const byKey = new Map<string, PaymentRow>();
 
-    const rank = (s: PaymentStatus): number => {
-        if (s === PaymentStatus.CANCELED) return 3;
-        if (s === PaymentStatus.PARTIAL_CANCELED) return 2;
-        if (s === PaymentStatus.DONE) return 1;
-        return 0;
-    };
-
     for (const r of rows) {
         const k = r.tossPaymentKey ?? `__NO_KEY__:${r.id}`;
-        const prev = byKey.get(k);
 
+        const prev = byKey.get(k);
         if (!prev) {
             byKey.set(k, r);
             continue;
@@ -77,10 +71,17 @@ function dedupePayments(rows: PaymentRow[]): PaymentRow[] {
             createdAt: prev.createdAt > r.createdAt ? prev.createdAt : r.createdAt,
             amount: Math.max(prev.amount ?? 0, r.amount ?? 0),
             cancelAmount: Math.max(prev.cancelAmount ?? 0, r.cancelAmount ?? 0),
-            paymentStatus:
-                rank(prev.paymentStatus) >= rank(r.paymentStatus)
+            paymentStatus: (() => {
+                const rank = (s: PaymentStatus): number => {
+                    if (s === PaymentStatus.CANCELED) return 3;
+                    if (s === PaymentStatus.PARTIAL_CANCELED) return 2;
+                    if (s === PaymentStatus.DONE) return 1;
+                    return 0;
+                };
+                return rank(prev.paymentStatus) >= rank(r.paymentStatus)
                     ? prev.paymentStatus
-                    : r.paymentStatus,
+                    : r.paymentStatus;
+            })(),
         };
 
         byKey.set(k, merged);
@@ -89,44 +90,43 @@ function dedupePayments(rows: PaymentRow[]): PaymentRow[] {
     return Array.from(byKey.values());
 }
 
-type CourseEntity = Awaited<ReturnType<typeof ivyDb.course.findMany>>[number];
-
-type CourseWithRevenue = CourseEntity & {
-    totalRevenue: Money;
-    totalRefund: Money;
-    totalPrice: Money;
-    hasPayment: boolean;
-};
-
-export async function getCoursesWithCustomer(): Promise<CourseWithRevenue[]> {
+export async function getCoursesWithCustomer(year?: number) {
     try {
-        const paidStatuses: PaymentStatus[] = [
-            PaymentStatus.DONE,
-            PaymentStatus.CANCELED,
-            PaymentStatus.PARTIAL_CANCELED,
-        ];
+        const startDate = year ? new Date(year, 0, 1) : undefined;
+        const endDate = year ? new Date(year, 11, 31, 23, 59, 59, 999) : undefined;
 
-        const courses: CourseEntity[] = await ivyDb.course.findMany({
+        // 1. 모든 강의 기초 정보
+        const courses = await ivyDb.course.findMany({
             orderBy: { createdAt: 'desc' },
         });
 
-        const courseIds: string[] = courses.map((c) => c.id);
+        const courseIds = courses.map((c) => c.id);
         const courseIdSet = new Set<string>(courseIds);
 
-        // ✅ 여기서 'COURSE' 문자열 -> ProductCategory.COURSE 로 수정
         const orders = await ivyDb.order.findMany({
             where: {
-                payments: {
-                    some: {
-                        paymentStatus: { in: paidStatuses },
-                    },
-                },
                 orderItems: {
                     some: {
-                        productCategory: ProductCategory.COURSE,
+                        productCategory: 'COURSE',
                         OR: [{ courseId: { in: courseIds } }, { productId: { in: courseIds } }],
                     },
                 },
+                ...(startDate && endDate
+                    ? {
+                          payments: {
+                              some: {
+                                  createdAt: { gte: startDate, lte: endDate },
+                                  paymentStatus: {
+                                      in: [
+                                          PaymentStatus.DONE,
+                                          PaymentStatus.CANCELED,
+                                          PaymentStatus.PARTIAL_CANCELED,
+                                      ],
+                                  },
+                              },
+                          },
+                      }
+                    : {}),
             },
             include: {
                 orderItems: {
@@ -142,6 +142,10 @@ export async function getCoursesWithCustomer(): Promise<CourseWithRevenue[]> {
                     },
                 },
                 payments: {
+                    where:
+                        startDate && endDate
+                            ? { createdAt: { gte: startDate, lte: endDate } }
+                            : undefined,
                     select: {
                         id: true,
                         tossPaymentKey: true,
@@ -156,38 +160,31 @@ export async function getCoursesWithCustomer(): Promise<CourseWithRevenue[]> {
 
         const revenueMap = new Map<string, Money>();
         const refundMap = new Map<string, Money>();
-        const paidCourseSet = new Set<string>();
+
+        const paidStatuses: Set<PaymentStatus> = new Set([
+            PaymentStatus.DONE,
+            PaymentStatus.CANCELED,
+            PaymentStatus.PARTIAL_CANCELED,
+        ]);
 
         for (const order of orders) {
             const paidPayments = dedupePayments(
-                order.payments.filter((p) => paidStatuses.includes(p.paymentStatus))
+                order.payments.filter((p) => paidStatuses.has(p.paymentStatus))
             );
+            if (paidPayments.length === 0) continue;
 
-            if (paidPayments.length > 0) {
-                for (const it of order.orderItems) {
-                    if (it.productCategory !== ProductCategory.COURSE) continue;
-                    const cid = (it.courseId ?? it.productId) as string | null;
-                    if (!cid) continue;
-                    if (!courseIdSet.has(cid)) continue;
-                    paidCourseSet.add(cid);
-                }
-            }
+            const orderPaid = sum(paidPayments.map((p) => p.amount));
+            const orderRefund = sum(paidPayments.map((p) => p.cancelAmount));
 
-            const orderPaid: Money = sum(paidPayments.map((p) => p.amount));
-            const orderRefund: Money = sum(paidPayments.map((p) => p.cancelAmount));
-
-            const allocItems: AllocItem[] = order.orderItems
+            const allocItems = order.orderItems
                 .map((it, idx) => {
                     const price = (it.discountedPrice ?? it.originalPrice) || 0;
-
                     if (it.productCategory === ProductCategory.COURSE) {
                         const cid = (it.courseId ?? it.productId) as string | null;
                         if (!cid) return null;
                         return { key: cid, price };
                     }
-
-                    const pid = it.productId ?? `__NO_PID__:${idx}`;
-                    return { key: `__${String(it.productCategory)}__:${pid}`, price };
+                    return { key: `__EBOOK__:${it.productId ?? idx}`, price };
                 })
                 .filter((v): v is AllocItem => Boolean(v));
 
@@ -204,74 +201,50 @@ export async function getCoursesWithCustomer(): Promise<CourseWithRevenue[]> {
             }
         }
 
-        const coursesWithRevenue: CourseWithRevenue[] = courses.map((course) => {
+        const coursesWithRevenue = courses.map((course) => {
             const totalRevenue = revenueMap.get(course.id) ?? 0;
             const totalRefund = refundMap.get(course.id) ?? 0;
-
             return {
                 ...course,
                 totalRevenue,
                 totalRefund,
                 totalPrice: totalRevenue - totalRefund,
-                hasPayment: paidCourseSet.has(course.id),
             };
         });
 
-        // parentId 인덱스
-        const childrenByParent = new Map<string, CourseWithRevenue[]>();
-        for (const c of coursesWithRevenue) {
-            const parentId = (c as { parentId?: string | null }).parentId ?? null;
-            if (!parentId) continue;
-            if (!childrenByParent.has(parentId)) childrenByParent.set(parentId, []);
-            childrenByParent.get(parentId)!.push(c);
-        }
+        const mainCourses = coursesWithRevenue.filter((course) =>
+            course.title.trim().endsWith(']')
+        );
 
-        const collectDescendants = (parentId: string): CourseWithRevenue[] => {
-            const out: CourseWithRevenue[] = [];
-            const visited = new Set<string>();
-            const queue: string[] = [parentId];
-
-            while (queue.length > 0) {
-                const pid = queue.shift() as string;
-                const children = childrenByParent.get(pid) ?? [];
-                for (const child of children) {
-                    if (visited.has(child.id)) continue;
-                    visited.add(child.id);
-                    out.push(child);
-                    queue.push(child.id);
-                }
-            }
-            return out;
-        };
-
-        // ✅ 메인 = parentId 없는 부모 강의 전체 (타이틀 규칙 제거)
-        const mainCourses: CourseWithRevenue[] = coursesWithRevenue.filter((c) => {
-            const parentId = (c as { parentId?: string | null }).parentId ?? null;
-            return !parentId;
-        });
-
-        const merged: CourseWithRevenue[] = mainCourses.map((mainCourse) => {
-            const variants = collectDescendants(mainCourse.id);
+        const finalResult = mainCourses.map((mainCourse) => {
+            const variants = coursesWithRevenue.filter(
+                (c) =>
+                    c.id !== mainCourse.id &&
+                    (c.title.startsWith(mainCourse.title + '-') ||
+                        c.title.startsWith(mainCourse.title + '_'))
+            );
 
             const totalRevenue =
-                mainCourse.totalRevenue +
-                variants.reduce<Money>((acc, v) => acc + v.totalRevenue, 0);
+                mainCourse.totalRevenue + variants.reduce((acc, v) => acc + v.totalRevenue, 0);
             const totalRefund =
-                mainCourse.totalRefund + variants.reduce<Money>((acc, v) => acc + v.totalRefund, 0);
-            const hasPayment = mainCourse.hasPayment || variants.some((v) => v.hasPayment);
+                mainCourse.totalRefund + variants.reduce((acc, v) => acc + v.totalRefund, 0);
 
             return {
                 ...mainCourse,
                 totalRevenue,
                 totalRefund,
                 totalPrice: totalRevenue - totalRefund,
-                hasPayment,
             };
         });
 
-        return merged.filter((c) => c.hasPayment);
+        // ✅ [필터링 강화] 연도가 지정된 경우 매출이나 환불 내역이 존재하는 강의만 반환합니다.
+        if (year) {
+            return finalResult.filter((item) => item.totalRevenue > 0 || item.totalRefund > 0);
+        }
+
+        return finalResult;
     } catch (error) {
         console.error('[GET_COURSES_WITH_CUSTOMER_ERROR]', error);
-        throw new Error('강의별 매출을 불러오는데 실패했습니다.');
+        throw new Error('데이터를 불러오는데 실패했습니다.');
     }
 }

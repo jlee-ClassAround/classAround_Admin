@@ -20,7 +20,6 @@ export type LecturePaymentDetailRow = {
     buyerEmail: string | null;
     buyerPhone: string | null;
 
-    // ✅ 실제 결제된 강의 id / title (부모 페이지에서 자식 결제도 나오기 때문에 중요)
     courseId: string;
     courseTitle: string;
 
@@ -32,10 +31,8 @@ export type LecturePaymentDetailRow = {
 
     receiptUrl: string | null;
 
-    // ✅ RefundAction에서 필요한 값
     tossCustomerId: string | null;
 
-    // ✅ 표시용(없을 수 있음 → null 허용)
     refundableAmount: number | null;
 };
 
@@ -63,7 +60,6 @@ export async function getLecturePaymentsByOrder(
 ): Promise<{ rows: LecturePaymentDetailRow[] }> {
     const { courseId, status, type, search } = params;
 
-    // ✅ 0) 부모(courseId)의 자식 강의 ids까지 포함
     const childCourses = await ivyDb.course.findMany({
         where: { parentId: courseId },
         select: { id: true },
@@ -71,7 +67,6 @@ export async function getLecturePaymentsByOrder(
 
     const targetCourseIds = uniq([courseId, ...childCourses.map((c) => c.id)]);
 
-    // ✅ 1) OrderItem 필터: courseId / productId 둘 다 커버 (너 DB 구조가 섞여있어서)
     const itemWhere: Prisma.OrderItemWhereInput = {
         productCategory: 'COURSE',
         OR: [{ courseId: { in: targetCourseIds } }, { productId: { in: targetCourseIds } }],
@@ -142,7 +137,6 @@ export async function getLecturePaymentsByOrder(
                     orderItems: {
                         where: itemWhere,
                         select: {
-                            // ✅ 어떤 강의로 결제된 건지 식별용
                             courseId: true,
                             productId: true,
 
@@ -157,7 +151,6 @@ export async function getLecturePaymentsByOrder(
         },
     });
 
-    // ✅ 2) Payment.tossPaymentKey(= TossCustomer.paymentKey)로 tossCustomerId / refundableAmount 매핑
     const paymentKeys = payments
         .map((p) => p.tossPaymentKey)
         .filter((k): k is string => typeof k === 'string' && k.length > 0);

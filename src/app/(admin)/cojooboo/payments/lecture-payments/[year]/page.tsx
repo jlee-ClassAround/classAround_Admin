@@ -43,16 +43,10 @@ export default async function AdminLecturePaymentsPage({ params, searchParams }:
                   to: new Date(yearNum + 1, 0, 1),
               };
 
-    // const [stats, payments, dailyStats, courses] = await Promise.all([
-    //     getPaymentStats({ dateRange, status, type, courseId, search }),
-    //     getPayments({ dateRange, status, type, courseId, search }),
-    //     getDailyStats({ dateRange, status, type, courseId, search }),
-    //     getAdminCourses(),
-    // ]);
     const [stats] = await Promise.all([
         getPaymentStats({ dateRange, status, type, courseId, search }),
     ]);
-    const data = await getCoursesWithCustomer();
+    const data = await getCoursesWithCustomer(yearNum);
 
     return (
         <div className="space-y-8">

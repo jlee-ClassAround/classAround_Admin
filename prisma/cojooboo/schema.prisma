@@ -11,35 +11,33 @@ datasource db {
 }
 
 model User {
-  id                                    String           @id @default(uuid())
-  username                              String?
-  nickname                              String?
-  email                                 String?
-  password                              String?
-  phone                                 String?
-  avatar                                String?
-  kakaoId                               String?          @unique
-  kajabiContactId                       String?          @unique
-  optedIn                               Boolean          @default(false)
-  createdAt                             DateTime         @default(now())
-  updatedAt                             DateTime         @updatedAt
-  roleId                                String?
-  applyCourses                          ApplyCourse[]
-  CashPayment_CashPayment_adminIdToUser CashPayment[]    @relation("CashPayment_adminIdToUser")
-  CashPayment_CashPayment_userIdToUser  CashPayment[]    @relation("CashPayment_userIdToUser")
-  contacts                              Contact[]
-  ebookPurchases                        EbookPurchase[]
-  enrollments                           Enrollment[]
-  orders                                Order[]
-  revenues                              Revenue[]
-  revieww                               Review[]
-  tossCustomers                         TossCustomer[]
-  transactions                          Transaction[]
-  Role                                  Role?            @relation(fields: [roleId], references: [id])
-  userBillingInfo                       UserBillingInfo?
-  userCoupons                           UserCoupon[]
-  userProgresses                        UserProgress[]
-  userTags                              UserTag[]
+  id              String           @id @default(uuid())
+  username        String?
+  nickname        String?
+  email           String?
+  password        String?
+  phone           String?
+  avatar          String?
+  kakaoId         String?          @unique
+  kajabiContactId String?          @unique
+  optedIn         Boolean          @default(false)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  roleId          String?
+  applyCourses    ApplyCourse[]
+  contacts        Contact[]
+  ebookPurchases  EbookPurchase[]
+  enrollments     Enrollment[]
+  orders          Order[]
+  revenues        Revenue[]
+  revieww         Review[]
+  tossCustomers   TossCustomer[]
+  transactions    Transaction[]
+  Role            Role?            @relation(fields: [roleId], references: [id])
+  userBillingInfo UserBillingInfo?
+  userCoupons     UserCoupon[]
+  userProgresses  UserProgress[]
+  userTags        UserTag[]
 }
 
 model Course {
@@ -65,14 +63,11 @@ model Course {
   maxPurchaseCount   Int?
   isHidden           Boolean        @default(false)
   cashDiscount       Int?
-  freeCourseId       String?
   parentId           String?
   kakaoRoomLink2     String?
   kakaoRoomPassword2 String?
-  CashPayment        CashPayment[]
   chapters           Chapter[]
   category           Category?      @relation(fields: [categoryId], references: [id])
-  FreeCourse         FreeCourse?    @relation(fields: [freeCourseId], references: [id])
   options            CourseOption[]
   detailImages       DetailImage[]
   enrollments        Enrollment[]
@@ -103,7 +98,6 @@ model FreeCourse {
   location          String?
   isHidden          Boolean        @default(false)
   applyCourses      ApplyCourse[]
-  Course            Course[]
   detailImages      DetailImage[]
   category          Category?      @relation(fields: [categoryId], references: [id])
   productBadge      ProductBadge[] @relation("FreeCourseToProductBadge")
@@ -257,6 +251,7 @@ model Enrollment {
   courseOptionId String?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
+  role           String?
   course         Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
   courseOption   CourseOption? @relation(fields: [courseOptionId], references: [id])
   user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -523,7 +518,6 @@ model Ebook {
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
   isTaxFree         Boolean         @default(false)
-  CashPayment       CashPayment[]
   detailImages      DetailImage[]
   category          Category?       @relation(fields: [categoryId], references: [id])
   purchases         EbookPurchase[]
@@ -735,29 +729,6 @@ model RefundReceiveAccount {
   updatedAt        DateTime       @updatedAt
   virtualAccountId String         @unique
   virtualAccount   VirtualAccount @relation(fields: [virtualAccountId], references: [id], onDelete: Cascade)
-}
-
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model CashPayment {
-  id                             String    @id
-  productTitle                   String
-  productType                    String
-  price                          Int
-  cancelAmount                   Int?
-  paymentStatus                  String
-  cancelReason                   String?
-  userId                         String?
-  adminId                        String?
-  courseId                       String?
-  ebookId                        String?
-  createdAt                      DateTime  @default(now())
-  updatedAt                      DateTime
-  canceledAt                     DateTime? @db.Timestamptz(6)
-  completedAt                    DateTime? @db.Timestamptz(6)
-  User_CashPayment_adminIdToUser User?     @relation("CashPayment_adminIdToUser", fields: [adminId], references: [id])
-  Course                         Course?   @relation(fields: [courseId], references: [id])
-  Ebook                          Ebook?    @relation(fields: [ebookId], references: [id])
-  User_CashPayment_userIdToUser  User?     @relation("CashPayment_userIdToUser", fields: [userId], references: [id])
 }
 
 enum ProductType {
