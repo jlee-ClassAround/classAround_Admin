@@ -7,16 +7,18 @@ interface Props {
     courseId: string;
 }
 
+// 💡 1. 타입 정의에 role 추가
 export type EnrolledUser = User & {
+    enrollmentId: string;
     progress: number;
     courseOption: CourseOption | null;
     endDate: Date | null;
     isActive: boolean;
+    role: string | null;
 };
 
 export async function getEnrolledUsers({ courseId }: Props) {
     try {
-        // 1. 먼저 모든 enrollment와 관련 데이터를 한 번에 조회
         const enrollments = await cojoobooDb.enrollment.findMany({
             where: {
                 courseId,
@@ -27,7 +29,6 @@ export async function getEnrolledUsers({ courseId }: Props) {
             },
         });
 
-        // 2. 모든 학생들의 progress를 한 번의 쿼리로 조회
         const userIds = enrollments.map((enrollment) => enrollment.userId);
 
         const progressResults = await cojoobooDb.userProgress.groupBy({
@@ -48,7 +49,6 @@ export async function getEnrolledUsers({ courseId }: Props) {
             },
         });
 
-        // 3. 전체 강의 수 조회
         const totalLessons = await cojoobooDb.lesson.count({
             where: {
                 chapter: {
@@ -58,7 +58,6 @@ export async function getEnrolledUsers({ courseId }: Props) {
             },
         });
 
-        // 4. Progress 계산을 위한 Map 생성
         const progressMap = new Map(
             progressResults.map((result) => [
                 result.userId,
@@ -66,15 +65,16 @@ export async function getEnrolledUsers({ courseId }: Props) {
             ])
         );
 
-        // 5. 최종 데이터 조합
         const enrolledUsers = enrollments.map(
             (enrollment) =>
                 ({
                     ...enrollment.user,
+                    enrollmentId: enrollment.id,
                     courseOption: enrollment.courseOption,
                     progress: progressMap.get(enrollment.userId) || 0,
                     endDate: enrollment.endDate,
                     isActive: enrollment.isActive,
+                    role: enrollment.role,
                 } as EnrolledUser)
         );
 

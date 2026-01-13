@@ -251,6 +251,7 @@ model Enrollment {
   courseOptionId String?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
+  role           String?
   course         Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
   courseOption   CourseOption? @relation(fields: [courseOptionId], references: [id])
   user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)

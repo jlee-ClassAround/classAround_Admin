@@ -1,4 +1,4 @@
-import { PrismaClient } from '@/generated/ivy';
+import { PrismaClient } from '@/generated/cojooboo';
 import { getEncryptedSecretKey } from '@/external-api/tosspayments/services/get-encrypted-secret-key';
 import { TossPayment, Cancel } from '@/external-api/tosspayments/types/tosspayment-object';
 

@@ -1,9 +1,4 @@
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-
-import { getPayments } from '../_actions/get-payments';
-import { getDailyStats } from '../../../_actions/payments/get-daily-stats';
-import { getAdminCourses } from '../../../_actions/courses/get-admin-courses';
 import { PaymentStats } from '../../history/_components/payment-stats';
 import { PaymentDataTable } from '../_components';
 import { columns } from './columns';
@@ -43,16 +38,10 @@ export default async function AdminLecturePaymentsPage({ params, searchParams }:
                   to: new Date(yearNum + 1, 0, 1),
               };
 
-    // const [stats, payments, dailyStats, courses] = await Promise.all([
-    //     getPaymentStats({ dateRange, status, type, courseId, search }),
-    //     getPayments({ dateRange, status, type, courseId, search }),
-    //     getDailyStats({ dateRange, status, type, courseId, search }),
-    //     getAdminCourses(),
-    // ]);
     const [stats] = await Promise.all([
         getPaymentStats({ dateRange, status, type, courseId, search }),
     ]);
-    const data = await getCoursesWithCustomer();
+    const data = await getCoursesWithCustomer(yearNum);
 
     return (
         <div className="space-y-8">

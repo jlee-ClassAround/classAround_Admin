@@ -2,19 +2,15 @@
 
 import { ivyDb } from '@/lib/ivyDb';
 import { refundPayment } from '@/external-api/tosspayments/services/refund-payment';
-
 import { revalidateTag } from 'next/cache';
 import { OrderStatus, PaymentMethod, PaymentStatus } from '@/generated/ivy';
 import { getIsAdmin } from '@/lib/is-admin';
 
 type RefundPaymentActionInput = {
     tossCustomerId: string;
-
     cancelReason: string;
     cancelAmount?: number | null;
-
     isDeleteEnrollment?: boolean;
-
     bankCode?: string;
     accountNumber?: string;
     accountHolder?: string;
@@ -66,7 +62,6 @@ export async function refundPaymentAction(
             accountHolder,
         } = input;
 
-        // 1) TossCustomer 조회
         const tc = await ivyDb.tossCustomer.findUnique({
             where: { id: tossCustomerId },
             select: {
@@ -76,43 +71,33 @@ export async function refundPaymentAction(
                 paymentStatus: true,
                 finalPrice: true,
                 refundableAmount: true,
-                // paymentMethod: true,
                 userId: true,
                 courseId: true,
-                // 아래 필드들이 실제 스키마에 없으면 제거해도 됨
-                // productType: true,
             },
         });
 
-        if (!tc) return { success: false, message: 'Payment not found (tossCustomer)' };
-        if (!tc.paymentKey) return { success: false, message: 'toss paymentKey가 없습니다.' };
+        if (!tc) return { success: false, message: '환불 대상을 찾을 수 없습니다. (tossCustomer)' };
+        if (!tc.paymentKey)
+            return { success: false, message: 'Toss PaymentKey가 존재하지 않습니다.' };
 
         const approvedAmount = safeNumber(tc.finalPrice);
         if (approvedAmount <= 0)
-            return { success: false, message: '무료 결제는 환불이 불가능합니다.' };
+            return { success: false, message: '무료 결제건은 환불이 불가능합니다.' };
 
-        // 2) Payment + Order 조회 (tossPaymentKey로 Payment 찾는게 제일 안전)
         const paymentWithOrder = await ivyDb.payment.findFirst({
             where: { tossPaymentKey: tc.paymentKey },
-            include: {
-                order: true,
-            },
+            include: { order: true },
         });
 
-        if (!paymentWithOrder)
-            return { success: false, message: 'Payment row를 찾을 수 없습니다.' };
-        if (!paymentWithOrder.order)
-            return { success: false, message: 'Order row를 찾을 수 없습니다.' };
+        if (!paymentWithOrder) {
+            return { success: false, message: '내부 결제 기록(Payment)을 찾을 수 없습니다.' };
+        }
 
         const paymentId = paymentWithOrder.id;
-        const orderId = paymentWithOrder.order.id;
+        const orderId = paymentWithOrder.orderId;
 
-        // 3) 토스 환불 호출
-        // const method = String(tc.paymentMethod ?? '').toUpperCase();
-        const method = 'CARD';
+        const method = paymentWithOrder.paymentMethod;
         const isVirtualAccount = method === String(PaymentMethod.VIRTUAL_ACCOUNT);
-
-        // WAITING_FOR_DEPOSIT(입금대기)인 가상계좌는 환불 파라미터가 다를 수 있어서 기존 로직 유지
         const isWaitingForDeposit =
             String(tc.paymentStatus ?? '').toUpperCase() === 'WAITING_FOR_DEPOSIT';
 
@@ -130,35 +115,33 @@ export async function refundPaymentAction(
         });
 
         if (!tossRefundResult.success) {
-            return { success: false, message: tossRefundResult.message ?? '토스 환불 실패' };
+            return {
+                success: false,
+                message: tossRefundResult.message ?? '토스 API 환불 처리 실패',
+            };
         }
 
         const cancels = (tossRefundResult.data?.cancels ?? []) as TossCancel[];
         if (!Array.isArray(cancels) || cancels.length === 0) {
-            return { success: false, message: '환불 정보를 찾을 수 없습니다. (cancels empty)' };
+            return { success: false, message: '환불 결과 데이터를 찾을 수 없습니다.' };
         }
 
         const last = cancels[cancels.length - 1];
         const refundableAmount = safeNumber(last.refundableAmount);
-
-        // ✅ “총 환불된 금액”을 확실히 만들기: 승인액 - 남은 환불가능액
-        // (이 값이 DB에 들어가야 통계에서 cancelAmount 집계가 됨)
         const canceledSoFar = Math.max(0, approvedAmount - refundableAmount);
 
         const nextPaymentStatus =
             refundableAmount > 0 ? PaymentStatus.PARTIAL_CANCELED : PaymentStatus.CANCELED;
         const nextOrderStatus =
             refundableAmount > 0 ? OrderStatus.PARTIAL_REFUNDED : OrderStatus.REFUNDED;
-
         const canceledAt = toDate(last.canceledAt) ?? new Date();
 
-        // 4) DB 반영 (Payment / Order / TossCustomer)
         await ivyDb.$transaction(async (tx) => {
             await tx.payment.update({
                 where: { id: paymentId },
                 data: {
-                    paymentStatus: nextPaymentStatus,
-                    cancelAmount: canceledSoFar, // ✅ 핵심: null이면 집계 안됨 → 반드시 숫자로
+                    paymentStatus: nextPaymentStatus as PaymentStatus,
+                    cancelAmount: canceledSoFar,
                     canceledAt,
                     cancelReason: cancelReason ?? last.cancelReason ?? null,
                 },
@@ -167,7 +150,7 @@ export async function refundPaymentAction(
             await tx.order.update({
                 where: { id: orderId },
                 data: {
-                    status: nextOrderStatus,
+                    status: nextOrderStatus as OrderStatus,
                 },
             });
 
@@ -182,8 +165,6 @@ export async function refundPaymentAction(
                 },
             });
 
-            // 5) (옵션) 수강권 삭제
-            // ✅ 결제 내역이 child course(= parentId 보유)라면 parentId + courseId 둘 다 enrollment 삭제
             if (isDeleteEnrollment && tc.userId && tc.courseId) {
                 const course = await tx.course.findUnique({
                     where: { id: tc.courseId },
@@ -201,19 +182,16 @@ export async function refundPaymentAction(
                             courseId: { in: targetCourseIds },
                         },
                     });
-
-                    // 캐시 태그도 같이 갱신
                     for (const cid of targetCourseIds) revalidateTag(`course-${cid}`);
                 }
             } else if (tc.courseId) {
-                // 수강권 삭제는 안해도, 결제/환불 반영됐으니 최소 해당 코스는 갱신
                 revalidateTag(`course-${tc.courseId}`);
             }
         });
 
         return {
             success: true,
-            message: '환불 처리 완료',
+            message: '환불 처리가 완료되었습니다.',
             paymentId,
             orderId,
             canceledAmount: canceledSoFar,

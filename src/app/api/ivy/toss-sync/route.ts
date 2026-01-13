@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { cojoobooDb } from '@/lib/cojoobooDb';
+import { ivyDb } from '@/lib/ivyDb';
 import { getIsAdmin } from '@/lib/is-admin';
 import { getEncryptedSecretKey } from '@/external-api/tosspayments/services/get-encrypted-secret-key';
 import type { TossPayment, Cancel } from '@/external-api/tosspayments/types/tosspayment-object';
@@ -30,6 +30,7 @@ function toInt(value: string | null, fallback: number): number {
 
 export async function POST(req: Request) {
     const isAdmin = await getIsAdmin();
+
     if (!isAdmin) {
         return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
@@ -48,7 +49,7 @@ export async function POST(req: Request) {
             },
         } as const;
 
-        const rows = await cojoobooDb.tossCustomer.findMany({
+        const rows = await ivyDb.tossCustomer.findMany({
             where,
             take: limit,
             ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
@@ -110,7 +111,7 @@ export async function POST(req: Request) {
 
             if (!needUpdate) continue;
 
-            await cojoobooDb.tossCustomer.update({
+            await ivyDb.tossCustomer.update({
                 where: { id: p.id },
                 data: {
                     paymentStatus: newStatus,

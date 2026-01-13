@@ -33,6 +33,14 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { sendKakaoMessageAction } from '../actions/send-kakao-message';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { updateEnrollmentRoleAction } from './_actions/update-enrollment-role';
 
 export const columns: ColumnDef<EnrolledUser>[] = [
     {
@@ -144,7 +152,42 @@ export const columns: ColumnDef<EnrolledUser>[] = [
             );
         },
     },
+    {
+        accessorKey: 'role',
+        meta: {
+            label: '권한설정',
+        },
+        header: ({ column }) => <DataTableColumnHeader column={column} title="스탭등록" />,
+        cell: ({ row }) => {
+            const data = row.original;
 
+            const handleRoleChange = async (value: string) => {
+                const newRole = value === 'student' ? null : 'manager';
+
+                // 💡 서버 액션 호출 시 data.enrollmentId 사용
+                const result = await updateEnrollmentRoleAction(data.enrollmentId, newRole);
+
+                if (result.success) {
+                    toast.success('권한이 변경되었습니다.');
+                }
+            };
+
+            return (
+                <Select
+                    defaultValue={data.role === 'manager' ? 'manager' : 'student'}
+                    onValueChange={handleRoleChange}
+                >
+                    <SelectTrigger className="w-[100px] h-8 text-xs">
+                        <SelectValue placeholder="권한 선택" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="student">수강생</SelectItem>
+                        <SelectItem value="manager">스탭</SelectItem>
+                    </SelectContent>
+                </Select>
+            );
+        },
+    },
     {
         id: 'actions',
         size: 20,

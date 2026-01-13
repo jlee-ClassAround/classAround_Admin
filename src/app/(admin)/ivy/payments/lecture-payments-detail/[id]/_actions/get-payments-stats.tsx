@@ -5,9 +5,9 @@ import { Prisma, OrderStatus, PaymentStatus, ProductCategory } from '@/generated
 
 export type LecturePaymentStats = {
     totalOrders: number;
-    totalPaymentAmount: number; // ✅ 총매출(결제된 금액)
-    totalRefundAmount: number; // ✅ 환불 금액
-    finalPaymentAmount: number; // ✅ 순이익(총매출 - 환불)
+    totalPaymentAmount: number;
+    totalRefundAmount: number;
+    finalPaymentAmount: number;
     couponUsageCount: number;
     totalDiscountAmount: number;
     refundStatsCount: number;
