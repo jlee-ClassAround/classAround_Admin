@@ -1,5 +1,10 @@
 export function downloadCSV(data: any[], filename: string) {
-    // CSV 헤더 생성
+    const sortedData = [...data].sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return dateA - dateB; // 오름차순 (과거 -> 현재)
+    });
+
     const headers = [
         '주문명',
         '상품명',
@@ -15,32 +20,50 @@ export function downloadCSV(data: any[], filename: string) {
         '환불일',
     ];
 
-    // CSV 데이터 생성
-    const csvData = data.map((item) => [
-        item.orderName,
-        item.productTitle,
-        item.user?.username,
-        item.user?.phone,
-        item.user?.email,
-        item.productType === 'COURSE' ? '강의' : '전자책',
-        item.finalPrice,
-        item.paymentStatus === 'COMPLETED'
-            ? '결제완료'
-            : item.paymentStatus === 'REFUNDED'
-            ? '환불됨'
-            : item.paymentStatus === 'PARTIAL_REFUNDED'
-            ? '부분환불'
-            : '취소됨',
-        item.isTaxFree ? '면세' : '과세',
-        new Date(item.createdAt).toLocaleString('ko-KR'),
-        item.cancelAmount,
-        item.canceledAt ? new Date(item.canceledAt).toLocaleString() : '',
-    ]);
+    const formatToSortableDate = (dateInput: any) => {
+        if (!dateInput) return '';
+        const d = new Date(dateInput);
+        if (isNaN(d.getTime())) return '';
 
-    // CSV 문자열 생성
+        const pad = (n: number) => (n < 10 ? `0${n}` : n);
+
+        const year = d.getFullYear();
+        const month = pad(d.getMonth() + 1);
+        const day = pad(d.getDate());
+        const hours = pad(d.getHours());
+        const minutes = pad(d.getMinutes());
+        const seconds = pad(d.getSeconds());
+
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    };
+
+    const csvData = sortedData.map((item) => {
+        const cleanText = (text: any) => String(text ?? '').replace(/,/g, '');
+
+        return [
+            cleanText(item.orderName),
+            cleanText(item.productTitle),
+            cleanText(item.user?.username),
+            cleanText(item.user?.phone),
+            cleanText(item.user?.email),
+            item.productType === 'COURSE' ? '강의' : '전자책',
+            item.finalPrice,
+            item.paymentStatus === 'COMPLETED'
+                ? '결제완료'
+                : item.paymentStatus === 'REFUNDED'
+                ? '환불됨'
+                : item.paymentStatus === 'PARTIAL_REFUNDED'
+                ? '부분환불'
+                : '취소됨',
+            item.isTaxFree ? '면세' : '과세',
+            formatToSortableDate(item.createdAt), // 결제일
+            item.cancelAmount || 0,
+            formatToSortableDate(item.canceledAt), // 환불일
+        ];
+    });
+
     const csvContent = [headers.join(','), ...csvData.map((row) => row.join(','))].join('\n');
 
-    // CSV 파일 다운로드
     const blob = new Blob(['\uFEFF' + csvContent], {
         type: 'text/csv;charset=utf-8',
     });
@@ -52,4 +75,5 @@ export function downloadCSV(data: any[], filename: string) {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+    window.URL.revokeObjectURL(url); // 메모리 해제
 }

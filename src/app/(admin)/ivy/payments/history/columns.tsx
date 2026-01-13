@@ -36,23 +36,6 @@ interface ExtendedTossCustomer extends TossCustomer {
 }
 
 export const columns: ColumnDef<ExtendedTossCustomer>[] = [
-    // {
-    //   accessorKey: "orderName",
-    //   meta: {
-    //     label: "주문명",
-    //   },
-    //   header: ({ column }) => (
-    //     <DataTableColumnHeader column={column} title="주문명" />
-    //   ),
-    //   cell: ({ row }) => {
-    //     const data = row.original;
-    //     return (
-    //       <div className="max-w-[300px] truncate text-xs">
-    //         {data.orderName || "-"}
-    //       </div>
-    //     );
-    //   },
-    // },
     {
         accessorKey: 'course.title',
         meta: {
@@ -140,7 +123,7 @@ export const columns: ColumnDef<ExtendedTossCustomer>[] = [
         cell: ({ row }) => {
             const data = row.original;
             return (
-                <div className="text-end text-xs truncate font-medium">
+                <div className="text-center text-xs truncate font-medium">
                     {formatPrice(data.finalPrice)}
                 </div>
             );
@@ -151,9 +134,13 @@ export const columns: ColumnDef<ExtendedTossCustomer>[] = [
         meta: {
             label: '결제일',
         },
-        header: ({ column }) => <DataTableColumnHeader column={column} title="결제일" />,
+        header: ({ column }) => (
+            <div className="flex justify-center">
+                <DataTableColumnHeader column={column} title="결제일" />
+            </div>
+        ),
         cell: ({ row }) => (
-            <div className="text-end text-xs truncate">
+            <div className="w-full text-center text-xs truncate">
                 {dateTimeFormat(row.original.createdAt)}
             </div>
         ),
@@ -208,7 +195,7 @@ export const columns: ColumnDef<ExtendedTossCustomer>[] = [
         cell: ({ row }) => {
             const data = row.original.cancelAmount;
             if (data) {
-                return <div className="text-end text-xs truncate">{formatPrice(data)}</div>;
+                return <div className="text-start text-xs truncate">{formatPrice(data)}</div>;
             }
             return null;
         },
