@@ -15,6 +15,7 @@ import { TypeFilter } from './data-components/type-filter';
 import { TossCourseRepairButton } from './payment-sync-button';
 import { LecturePaymentDetailRow } from '../actions.js';
 import { downloadLecturePaymentsXLSX } from '../_actions/download-xlsx';
+import { CashPaymentUploadModal } from './cash-payment-upload-modal';
 
 interface LecturePaymentDetailDataTableProps {
     data: LecturePaymentDetailRow[];
@@ -83,17 +84,11 @@ LecturePaymentDetailDataTableProps) {
                 </Button>
                 <div className="flex justify-between gap-4 flex-wrap">
                     <TossCourseRepairButton courseId={courseId} dryRun={false} />
-                    {/* <div className="flex items-center gap-4 flex-wrap">
-                        <EnrollmentModalTrigger courseOptions={courseOptions} />
-                    </div>
-                    <div className="flex items-center gap-4 flex-wrap">
-                        <CashPaymentModalTrigger courseOptions={courseOptions} />
-                    </div> */}
                 </div>
             </div>
 
-            {/* 필터 area */}
             <div className="flex items-center gap-4 flex-wrap">
+                {/* 왼쪽 그룹: 검색 및 필터 */}
                 <SearchInput onChange={setSearch} value={search} />
                 <TypeFilter value={type} onChange={setType} />
                 <StatusFilter value={status} onChange={setStatus} />
@@ -102,10 +97,14 @@ LecturePaymentDetailDataTableProps) {
                     필터 삭제
                 </Button>
 
-                <Button onClick={handleDownloadCSV} variant="outline" size="sm" className="ml-auto">
-                    <Download className="h-4 w-4 mr-2" />
-                    XLSX 내보내기
-                </Button>
+                {/* 오른쪽 그룹: 업로드 및 내보내기 버튼 (ml-auto로 우측 밀착) */}
+                <div className="ml-auto flex items-center gap-2">
+                    {courseId && <CashPaymentUploadModal courseId={courseId} />}
+                    <Button onClick={handleDownloadCSV} variant="outline" size="sm">
+                        <Download className="h-4 w-4 mr-2" />
+                        XLSX 내보내기
+                    </Button>
+                </div>
             </div>
 
             {/* 데이터 테이블 */}

@@ -1,7 +1,15 @@
 'use server';
 
 import { ivyDb } from '@/lib/ivyDb';
-import { OrderStatus, PaymentMethod, PaymentStatus, Prisma } from '@/generated/ivy';
+import {
+    OrderStatus,
+    PaymentMethod,
+    PaymentStatus,
+    Prisma,
+    ProductCategory,
+} from '@/generated/ivy';
+import { revalidatePath } from 'next/cache';
+import { v4 as uuidv4 } from 'uuid';
 
 export type LecturePaymentDetailRow = {
     paidAt: Date;
@@ -217,4 +225,179 @@ export async function getLecturePaymentsByOrder(
     });
 
     return { rows };
+}
+export async function uploadCashPaymentsAction(courseId: string, rowData: any[]) {
+    try {
+        const course = await ivyDb.course.findUnique({
+            where: { id: courseId },
+            select: { title: true },
+        });
+
+        const results = await ivyDb.$transaction(async (tx) => {
+            let successCount = 0;
+
+            for (const row of rowData) {
+                // 엑셀 헤더: 이름, 핸드폰번호, 결제금, 환불액, 결제일, 환불일
+                const phone = String(row['핸드폰번호'] || '')
+                    .replace(/-/g, '')
+                    .trim();
+                const amount = Number(row['결제금'] || 0);
+                const refundAmount = Number(row['환불액'] || 0);
+
+                // ✅ 날짜 파싱: 2026.1.14 -> 2026-1-14 변환 로직
+                const parseDate = (val: any) => {
+                    if (!val) return new Date();
+                    const cleanDate = String(val).replace(/\./g, '-');
+                    const d = new Date(cleanDate);
+                    return isNaN(d.getTime()) ? new Date() : d;
+                };
+
+                const paidAt = parseDate(row['결제일']);
+                const refundedAt = row['환불일'] ? parseDate(row['환불일']) : null;
+
+                if (!phone || amount <= 0) continue;
+
+                const user = await tx.user.findUnique({ where: { phone } });
+                if (!user) continue;
+
+                const orderId = `CASH_${uuidv4().substring(0, 8)}`;
+                const isFullRefund = refundAmount > 0 && refundAmount >= amount;
+
+                await tx.order.create({
+                    data: {
+                        id: orderId,
+                        orderName: `[현금] ${course?.title || '강의 결제'}`,
+                        orderNumber: orderId,
+                        status: isFullRefund ? OrderStatus.REFUNDED : OrderStatus.PAID,
+                        amount,
+                        paidAmount: amount,
+                        remainingAmount: 0,
+                        originalPrice: amount,
+                        userId: user.id,
+                        createdAt: paidAt,
+                        updatedAt: new Date(),
+                    },
+                });
+
+                await tx.orderItem.create({
+                    data: {
+                        id: `ITEM_${orderId}`,
+                        orderId,
+                        productId: courseId,
+                        productTitle: course?.title || '현금 결제 상품',
+                        productCategory: ProductCategory.COURSE,
+                        courseId,
+                        quantity: 1,
+                        originalPrice: amount,
+                        createdAt: paidAt,
+                        updatedAt: new Date(),
+                    },
+                });
+
+                await tx.payment.create({
+                    data: {
+                        id: `PAY_${orderId}`,
+                        orderId,
+                        amount,
+                        paymentMethod: PaymentMethod.TRANSFER,
+                        paymentStatus: isFullRefund ? PaymentStatus.CANCELED : PaymentStatus.DONE,
+                        cancelAmount: refundAmount,
+                        canceledAt: refundedAt,
+                        fee: 0,
+                        createdAt: paidAt,
+                        updatedAt: new Date(),
+                    },
+                });
+                successCount++;
+            }
+            return successCount;
+        });
+
+        revalidatePath('/ivy/payments/lecture-payments');
+        return { success: true, count: results };
+    } catch (error) {
+        console.error('SYNC_ERROR', error);
+        return { success: false, message: '데이터 처리 중 서버 오류가 발생했습니다.' };
+    }
+}
+
+export async function manualRefundAction(data: {
+    paymentId: string;
+    orderId: string;
+    userId: string;
+    courseId: string;
+    cancelReason?: string;
+    cancelAmount?: number;
+    keepEnrollment: boolean;
+}) {
+    const { paymentId, orderId, userId, courseId, cancelReason, cancelAmount, keepEnrollment } =
+        data;
+
+    try {
+        await ivyDb.$transaction(async (tx) => {
+            const payment = await tx.payment.findUnique({
+                where: { id: paymentId },
+                select: { amount: true, cancelAmount: true },
+            });
+
+            if (!payment) throw new Error('결제 내역을 찾을 수 없습니다.');
+
+            const finalCancelAmount = cancelAmount ?? payment.amount - (payment.cancelAmount ?? 0);
+
+            // ✅ 사유가 없으면 "단순 변심"으로 자동 지정
+            const finalCancelReason = cancelReason?.trim() || '단순 변심';
+
+            await tx.payment.update({
+                where: { id: paymentId },
+                data: {
+                    paymentStatus: 'CANCELED',
+                    cancelAmount: finalCancelAmount,
+                    canceledAt: new Date(),
+                    // 💡 스키마의 메모/설명 컬럼에 사유 저장
+                    updatedAt: new Date(),
+                },
+            });
+
+            await tx.order.update({
+                where: { id: orderId },
+                data: { status: 'REFUNDED', updatedAt: new Date() },
+            });
+
+            if (!keepEnrollment && userId && courseId) {
+                await tx.enrollment.deleteMany({
+                    where: { userId, courseId },
+                });
+            }
+        });
+
+        revalidatePath('/ivy/payments/lecture-payments');
+        return { success: true };
+    } catch (error) {
+        console.error('MANUAL_REFUND_ERROR', error);
+        return { success: false, message: '환불 처리 실패' };
+    }
+}
+
+export async function getPaymentLogAction(orderId: string) {
+    try {
+        const order = await ivyDb.order.findUnique({
+            where: { id: orderId },
+            include: {
+                payments: {
+                    orderBy: { createdAt: 'desc' },
+                },
+                orderItems: true,
+                user: {
+                    select: { username: true, email: true, phone: true },
+                },
+            },
+        });
+
+        if (!order) throw new Error('주문 내역을 찾을 수 없습니다.');
+
+        return { success: true, data: order };
+    } catch (error) {
+        console.error('GET_LOG_ERROR', error);
+        return { success: false, message: '이력을 불러오는 중 오류 발생' };
+    }
 }
