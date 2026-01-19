@@ -19,10 +19,12 @@ import { CashPaymentUploadModal } from './cash-payment-upload-modal';
 
 interface LecturePaymentDetailDataTableProps {
     data: LecturePaymentDetailRow[];
+    courseId: string;
 }
 
 export function LecturePaymentDetailDataTable({
     data,
+    courseId,
 }: // courseOptions,
 LecturePaymentDetailDataTableProps) {
     /** -------------------------------
@@ -32,7 +34,6 @@ LecturePaymentDetailDataTableProps) {
     const [status, setStatus] = useState('ALL');
     const [type, setType] = useState('ALL');
     const [course, setCourse] = useState<string | null>(null);
-    const courseId = data?.[0]?.courseId;
 
     /** -------------------------------
      * 🔥 2) 필터링된 data 계산

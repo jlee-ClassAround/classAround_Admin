@@ -9,43 +9,33 @@ import {
     ProductCategory,
 } from '@/generated/cojooboo';
 import { revalidatePath } from 'next/cache';
-import { v4 as uuidv4 } from 'uuid';
 
 export type LecturePaymentDetailRow = {
     paidAt: Date;
-
     orderId: string;
     orderNumber: string;
     orderStatus: OrderStatus;
-
     paymentId: string;
     tossPaymentKey: string | null;
     paymentMethod: PaymentMethod;
     paymentStatus: PaymentStatus;
-
     userId: string | null;
     buyerName: string | null;
     buyerEmail: string | null;
     buyerPhone: string | null;
-
     courseId: string;
     courseTitle: string;
-
     itemPrice: number;
-
     paidAmount: number;
     refundAmount: number;
     netAmount: number;
-
     receiptUrl: string | null;
-
     tossCustomerId: string | null;
-
     refundableAmount: number | null;
 };
 
 export type GetLecturePaymentsParams = {
-    courseId: string; // 여기 들어온 courseId를 "부모"로 보고, 자식 결제도 합쳐서 보여줌
+    courseId: string;
     status?: string;
     type?: string;
     search?: string;
@@ -63,6 +53,9 @@ function uniq(arr: string[]): string[] {
     return Array.from(new Set(arr));
 }
 
+/** -------------------------------
+ * 🔥 강의별 결제 내역 조회
+ -------------------------------- */
 export async function getLecturePaymentsByOrder(
     params: GetLecturePaymentsParams
 ): Promise<{ rows: LecturePaymentDetailRow[] }> {
@@ -147,7 +140,6 @@ export async function getLecturePaymentsByOrder(
                         select: {
                             courseId: true,
                             productId: true,
-
                             productTitle: true,
                             originalPrice: true,
                             discountedPrice: true,
@@ -183,42 +175,31 @@ export async function getLecturePaymentsByOrder(
 
     const rows: LecturePaymentDetailRow[] = payments.map((p) => {
         const oi = p.order.orderItems[0];
-
         const realCourseId = (oi?.courseId ?? oi?.productId ?? courseId) as string;
         const title = oi?.productTitle ?? '(알 수 없음)';
-
         const buyerName = p.order.user?.username ?? null;
-
         const tc = p.tossPaymentKey ? tcMap.get(p.tossPaymentKey) : undefined;
 
         return {
             paidAt: p.createdAt,
             receiptUrl: p.receiptUrl,
-
             orderId: p.order.id,
             orderNumber: p.order.orderNumber,
             orderStatus: p.order.status,
-
             paymentId: p.id,
             tossPaymentKey: p.tossPaymentKey,
             paymentMethod: p.paymentMethod,
             paymentStatus: p.paymentStatus,
-
             userId: p.order.user?.id ?? null,
             buyerName,
             buyerEmail: p.order.user?.email ?? null,
             buyerPhone: p.order.user?.phone ?? null,
-
-            // ✅ 부모 화면에서도 실제 결제된 강의(자식 포함)로 내려줌
             courseId: realCourseId,
             courseTitle: title,
-
             itemPrice: oi ? itemFinalPrice(oi) : 0,
-
             paidAmount: p.amount,
             refundAmount: p.cancelAmount ?? 0,
             netAmount: p.amount - (p.cancelAmount ?? 0),
-
             tossCustomerId: tc?.id ?? null,
             refundableAmount: tc?.refundableAmount ?? null,
         };
@@ -226,6 +207,10 @@ export async function getLecturePaymentsByOrder(
 
     return { rows };
 }
+
+/** -------------------------------
+ * 🔥 현금결제 XLSX 업로드 (환불 데이터 중복 허용 버전)
+ -------------------------------- */
 export async function uploadCashPaymentsAction(courseId: string, rowData: any[]) {
     try {
         const course = await cojoobooDb.course.findUnique({
@@ -237,15 +222,27 @@ export async function uploadCashPaymentsAction(courseId: string, rowData: any[])
             let successCount = 0;
 
             for (const row of rowData) {
-                const phone = String(row['핸드폰번호'] || '')
+                // 1. 핸드폰 번호 보정
+                let rawPhone = String(row['핸드폰번호'] || '')
                     .replace(/-/g, '')
                     .trim();
+                if (
+                    rawPhone.startsWith('10') &&
+                    (rawPhone.length === 9 || rawPhone.length === 10)
+                ) {
+                    rawPhone = '0' + rawPhone;
+                }
+                const phone = rawPhone;
+
                 const amount = Number(row['결제금'] || 0);
                 const refundAmount = Number(row['환불액'] || 0);
 
+                // 2. 날짜 파싱
                 const parseDate = (val: any) => {
                     if (!val) return new Date();
-                    const cleanDate = String(val).replace(/\./g, '-');
+                    if (typeof val === 'number') return new Date((val - 25569) * 86400 * 1000);
+                    if (val instanceof Date) return val;
+                    const cleanDate = String(val).replace(/\./g, '-').trim();
                     const d = new Date(cleanDate);
                     return isNaN(d.getTime()) ? new Date() : d;
                 };
@@ -255,17 +252,39 @@ export async function uploadCashPaymentsAction(courseId: string, rowData: any[])
 
                 if (!phone || amount <= 0) continue;
 
+                // 3. 유저 조회
                 const user = await tx.user.findFirst({ where: { phone } });
                 if (!user) continue;
 
-                const orderId = `CASH_${uuidv4().substring(0, 8)}`;
+                // 4. 중복 등록 방지 (상태 필터 추가)
+                const dayStart = new Date(paidAt);
+                dayStart.setHours(0, 0, 0, 0);
+                const dayEnd = new Date(paidAt);
+                dayEnd.setHours(23, 59, 59, 999);
+
+                const existingOrder = await tx.order.findFirst({
+                    where: {
+                        userId: user.id,
+                        orderItems: { some: { courseId: courseId } },
+                        amount: amount,
+                        createdAt: { gte: dayStart, lt: dayEnd },
+                        // ✅ 추가: 취소되거나 환불된 주문은 중복 체크에서 제외 (새로 등록 가능하게 함)
+                        status: {
+                            notIn: [OrderStatus.CANCELED, OrderStatus.REFUNDED],
+                        },
+                    },
+                });
+
+                if (existingOrder) continue;
+
+                // 5. 데이터 생성
                 const isFullRefund = refundAmount > 0 && refundAmount >= amount;
+                const orderNumber = `CASH-${Date.now().toString().slice(-6)}`;
 
                 await tx.order.create({
                     data: {
-                        id: orderId,
                         orderName: `[현금] ${course?.title || '강의 결제'}`,
-                        orderNumber: orderId,
+                        orderNumber: orderNumber,
                         status: isFullRefund ? OrderStatus.REFUNDED : OrderStatus.PAID,
                         amount,
                         paidAmount: amount,
@@ -274,36 +293,32 @@ export async function uploadCashPaymentsAction(courseId: string, rowData: any[])
                         userId: user.id,
                         createdAt: paidAt,
                         updatedAt: new Date(),
-                    },
-                });
-
-                await tx.orderItem.create({
-                    data: {
-                        id: `ITEM_${orderId}`,
-                        orderId,
-                        productId: courseId,
-                        productTitle: course?.title || '현금 결제 상품',
-                        productCategory: ProductCategory.COURSE,
-                        courseId,
-                        quantity: 1,
-                        originalPrice: amount,
-                        createdAt: paidAt,
-                        updatedAt: new Date(),
-                    },
-                });
-
-                await tx.payment.create({
-                    data: {
-                        id: `PAY_${orderId}`,
-                        orderId,
-                        amount,
-                        paymentMethod: PaymentMethod.TRANSFER,
-                        paymentStatus: isFullRefund ? PaymentStatus.CANCELED : PaymentStatus.DONE,
-                        cancelAmount: refundAmount,
-                        canceledAt: refundedAt,
-                        fee: 0,
-                        createdAt: paidAt,
-                        updatedAt: new Date(),
+                        orderItems: {
+                            create: {
+                                productId: courseId,
+                                productTitle: course?.title || '현금 결제 상품',
+                                productCategory: ProductCategory.COURSE,
+                                courseId,
+                                quantity: 1,
+                                originalPrice: amount,
+                                createdAt: paidAt,
+                                updatedAt: new Date(),
+                            },
+                        },
+                        payments: {
+                            create: {
+                                amount,
+                                paymentMethod: PaymentMethod.TRANSFER,
+                                paymentStatus: isFullRefund
+                                    ? PaymentStatus.CANCELED
+                                    : PaymentStatus.DONE,
+                                cancelAmount: refundAmount,
+                                canceledAt: refundedAt,
+                                fee: 0,
+                                createdAt: paidAt,
+                                updatedAt: new Date(),
+                            },
+                        },
                     },
                 });
                 successCount++;
@@ -319,6 +334,9 @@ export async function uploadCashPaymentsAction(courseId: string, rowData: any[])
     }
 }
 
+/** -------------------------------
+ * 🔥 현금결제 수동 환불 액션
+ -------------------------------- */
 export async function manualRefundAction(data: {
     paymentId: string;
     orderId: string;
@@ -341,24 +359,22 @@ export async function manualRefundAction(data: {
             if (!payment) throw new Error('결제 내역을 찾을 수 없습니다.');
 
             const finalCancelAmount = cancelAmount ?? payment.amount - (payment.cancelAmount ?? 0);
-
-            // ✅ 사유가 없으면 "단순 변심"으로 자동 지정
             const finalCancelReason = cancelReason?.trim() || '단순 변심';
 
             await tx.payment.update({
                 where: { id: paymentId },
                 data: {
-                    paymentStatus: 'CANCELED',
+                    paymentStatus: PaymentStatus.CANCELED,
                     cancelAmount: finalCancelAmount,
+                    cancelReason: finalCancelReason,
                     canceledAt: new Date(),
-                    // 💡 스키마의 메모/설명 컬럼에 사유 저장
                     updatedAt: new Date(),
                 },
             });
 
             await tx.order.update({
                 where: { id: orderId },
-                data: { status: 'REFUNDED', updatedAt: new Date() },
+                data: { status: OrderStatus.REFUNDED, updatedAt: new Date() },
             });
 
             if (!keepEnrollment && userId && courseId) {
@@ -376,15 +392,17 @@ export async function manualRefundAction(data: {
     }
 }
 
+/** -------------------------------
+ * 🔥 결제 이력(로그) 조회 액션
+ -------------------------------- */
 export async function getPaymentLogAction(orderId: string) {
     try {
         const order = await cojoobooDb.order.findUnique({
             where: { id: orderId },
             include: {
                 payments: {
-                    orderBy: { createdAt: 'desc' },
+                    orderBy: { createdAt: 'asc' },
                 },
-                orderItems: true,
                 user: {
                     select: { username: true, email: true, phone: true },
                 },

@@ -547,7 +547,7 @@ model BillingSnapshot {
 }
 
 model Order {
-  id              String      @id
+  id              String      @id @default(uuid())
   orderName       String
   orderNumber     String
   type            OrderType   @default(BULK_PAYMENT)
@@ -567,7 +567,7 @@ model Order {
 }
 
 model OrderItem {
-  id              String          @id
+  id              String          @id @default(uuid())
   productCategory ProductCategory @default(COURSE)
   productId       String
   productTitle    String
@@ -587,7 +587,7 @@ model OrderItem {
 }
 
 model Payment {
-  id                  String           @id
+  id                  String           @id @default(uuid())
   tossPaymentKey      String?
   mId                 String?
   tossSecretKey       String?
