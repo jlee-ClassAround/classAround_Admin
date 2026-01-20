@@ -559,7 +559,7 @@ model Order {
   discountedPrice Int?
   usedCoupon      Json?
   createdAt       DateTime    @default(now()) @db.Timestamp(6)
-  updatedAt       DateTime    @db.Timestamp(6)
+  updatedAt       DateTime    @default(now()) @updatedAt @db.Timestamp(6)
   userId          String?
   user            User?       @relation(fields: [userId], references: [id])
   orderItems      OrderItem[]
@@ -577,7 +577,7 @@ model OrderItem {
   originalPrice   Int
   discountedPrice Int?
   createdAt       DateTime        @default(now()) @db.Timestamp(6)
-  updatedAt       DateTime        @db.Timestamp(6)
+  updatedAt       DateTime        @default(now()) @updatedAt @db.Timestamp(6)
   orderId         String
   courseId        String?
   ebookId         String?
@@ -603,7 +603,7 @@ model Payment {
   canceledAt          DateTime?        @db.Timestamp(6)
   receiptUrl          String?
   createdAt           DateTime         @default(now()) @db.Timestamp(6)
-  updatedAt           DateTime         @db.Timestamp(6)
+  updatedAt           DateTime         @default(now()) @updatedAt @db.Timestamp(6)
   orderId             String
   billingSnapshotId   String?
   billingSnapshot     BillingSnapshot? @relation(fields: [billingSnapshotId], references: [id])

@@ -23,7 +23,7 @@ function paymentStatusLabel(status: string): { label: string; className: string 
         case 'CANCELED':
             return { label: '환불됨', className: 'text-red-500 bg-red-500/10' };
         case 'PARTIAL_CANCELED':
-            return { label: '부분환불', className: 'text-red-500 bg-red-500/10' };
+            return { label: '부분환불', className: 'text-orange-500 bg-orange-500/10' };
         case 'WAITING_FOR_DEPOSIT':
             return { label: '입금대기', className: 'text-yellow-500 bg-yellow-500/10' };
         case 'WAITING_FOR_DIRECT_DEPOSIT':

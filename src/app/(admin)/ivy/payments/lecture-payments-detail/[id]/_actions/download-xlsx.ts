@@ -16,7 +16,8 @@ const KR_METHOD: Record<string, string> = {
 const KR_STATUS: Record<string, string> = {
     DONE: '결제완료',
     CANCELED: '환불됨',
-    PARTIAL_CANCELED: '부분환불',
+    PARTIAL_CANCELED: '부분환불', // 결제 상태용
+    PARTIAL_REFUNDED: '부분환불', // 주문 상태용 추가
     WAITING_FOR_DEPOSIT: '입금대기',
     WAITING_FOR_DIRECT_DEPOSIT: '입금확인대기',
     FAILED: '실패',
@@ -26,16 +27,16 @@ const KR_STATUS: Record<string, string> = {
 };
 
 /** -------------------------------
- * 🔥 XLSX 다운로드 (날짜 오름차순 정렬 추가)
+ * 🔥 XLSX 다운로드 (부분환불 로직 교정)
  -------------------------------- */
 export function downloadLecturePaymentsXLSX(data: any[], filename: string): void {
     console.log('엑셀 변환 데이터 가공 시작...');
 
-    // ✅ 1. 날짜 오름차순 정렬 (과거 데이터가 위로)
+    // 1. 날짜 오름차순 정렬
     const sortedData = [...data].sort((a, b) => {
         const dateA = new Date(a.paidAt || 0).getTime();
         const dateB = new Date(b.paidAt || 0).getTime();
-        return dateA - dateB; // 오름차순: A - B
+        return dateA - dateB;
     });
 
     // 2. 데이터 가공
@@ -44,9 +45,27 @@ export function downloadLecturePaymentsXLSX(data: any[], filename: string): void
         const pStatus = String(item.paymentStatus || '').toUpperCase();
         const oStatus = String(item.orderStatus || '').toUpperCase();
 
+        // 환불액 계산
         const refundAmt = Number(item.refundAmount || item.cancelAmount || 0);
-        const isRefunded = refundAmt > 0 || pStatus === 'CANCELED' || oStatus === 'REFUNDED';
-        const displayPaidAmount = isRefunded ? 0 : Number(item.paidAmount || item.amount || 0);
+
+        // 원본 결제액 (서버에서 배분된 paidAmount를 우선 사용)
+        const originalAmt = Number(item.paidAmount || item.amount || 0);
+
+        /**
+         * ✅ [핵심 로직 수정]
+         * 1. 완전히 환불된 경우(CANCELED/REFUNDED) -> 결제금액 0원
+         * 2. 부분 환불인 경우(PARTIAL_CANCELED/REFUNDED) -> [원금 - 환불액] 표시
+         * 3. 그 외 결제완료 등 -> 원금 표시
+         */
+        let displayPaidAmount = originalAmt;
+
+        if (pStatus === 'CANCELED' || oStatus === 'REFUNDED') {
+            displayPaidAmount = 0;
+        } else if (pStatus === 'PARTIAL_CANCELED' || oStatus === 'PARTIAL_REFUNDED') {
+            // 부분 환불 시 '순 결제액' 표시 (이미 서버에서 계산된 netAmount가 있다면 그것을 사용)
+            displayPaidAmount =
+                item.netAmount !== undefined ? item.netAmount : originalAmt - refundAmt;
+        }
 
         return {
             강의명: (item.courseTitle || '').replace(/\[복제됨\]/g, '').trim(),

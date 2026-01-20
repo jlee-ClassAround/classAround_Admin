@@ -21,23 +21,24 @@ export function CashPaymentUploadModal({ courseId }: { courseId: string }) {
         reader.onload = async (evt) => {
             try {
                 const data = evt.target?.result;
-                // ✅ type을 'array'로 지정하여 ArrayBuffer를 처리합니다.
                 const wb = XLSX.read(data, { type: 'array' });
                 const wsname = wb.SheetNames[0];
                 const ws = wb.Sheets[wsname];
+
                 const jsonData = XLSX.utils.sheet_to_json(ws);
 
                 if (jsonData.length === 0) throw new Error('데이터가 없는 파일입니다.');
 
-                const res = await uploadCashPaymentsAction(courseId, jsonData);
+                const safeData = JSON.parse(JSON.stringify(jsonData));
+
+                const res = await uploadCashPaymentsAction(courseId, safeData);
 
                 if (res.success) {
-                    toast.success(`${res.count}건의 현금결제가 등록되었습니다.`);
+                    toast.success(`${res.count}건의 현금결제가 처리되었습니다.`);
                 } else {
                     toast.error(res.message);
                 }
             } catch (err: any) {
-                // ✅ 에러 내용을 콘솔에 찍어 실제 원인을 파악할 수 있게 합니다.
                 console.error('UPLOAD_ERROR:', err);
                 toast.error(err.message || '파일 처리 중 오류가 발생했습니다.');
             } finally {
@@ -46,7 +47,6 @@ export function CashPaymentUploadModal({ courseId }: { courseId: string }) {
             }
         };
 
-        // ✅ readAsBinaryString 대신 readAsArrayBuffer 사용
         reader.readAsArrayBuffer(file);
     };
 
