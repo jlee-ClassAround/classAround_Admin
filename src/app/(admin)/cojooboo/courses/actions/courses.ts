@@ -155,10 +155,12 @@ export async function deleteCoursesBulkAction(courseIds: string[]) {
 export async function duplicateCourseAction(courseId: string, isIncludeChapters: boolean) {
     try {
         const isAdmin = await getIsAdmin();
+        console.log(isAdmin);
         if (!isAdmin) {
             return { success: false, error: 'Unauthorized' };
         }
 
+        console.log(0);
         // 기존 강의 조회
         const course = await cojoobooDb.course.findUnique({
             where: { id: courseId },
@@ -168,7 +170,7 @@ export async function duplicateCourseAction(courseId: string, isIncludeChapters:
                 },
             },
         });
-
+        console.log(1);
         if (!course) {
             return { success: false, error: 'Course not found' };
         }
@@ -187,7 +189,7 @@ export async function duplicateCourseAction(courseId: string, isIncludeChapters:
             },
             select: { id: true },
         });
-
+        console.log(2);
         // 챕터 + 레슨 복제
         if (isIncludeChapters) {
             for (const chapter of chapters) {
@@ -217,7 +219,7 @@ export async function duplicateCourseAction(courseId: string, isIncludeChapters:
                 }
             }
         }
-
+        console.log(3);
         // 🔄 캐시 갱신
         revalidateTag('courses');
         revalidateTag('best-courses');

@@ -31,7 +31,7 @@ import {
 } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import { dateTimeFormat, formatPrice } from '@/utils/formats';
-import type { Course } from '@/generated/ivy';
+import type { Course } from '@/generated/cojooboo';
 import type { ColumnDef, Row, Table } from '@tanstack/react-table';
 import {
     Copy,
@@ -87,7 +87,7 @@ function TitleCell({ course }: { course: Course }) {
         <div className="max-w-[520px]">
             <div className="flex items-center gap-2">
                 <Link
-                    href={`/ivy/courses/${course.id}`}
+                    href={`/cojooboo/courses/${course.id}`}
                     className="hover:text-primary truncate font-medium"
                 >
                     {course.title}
@@ -125,7 +125,7 @@ function TitleCell({ course }: { course: Course }) {
                                 <div key={c.id} className="flex items-center gap-2 text-xs">
                                     <span className="text-muted-foreground">•</span>
                                     <Link
-                                        href={`/ivy/courses/${c.id}`}
+                                        href={`/cojooboo/courses/${c.id}`}
                                         className="hover:text-primary truncate max-w-[300px]"
                                     >
                                         {c.title}
@@ -433,7 +433,7 @@ function ActionCell({ row }: { row: Row<Course> }) {
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
-                        <Link href={`/ivy/courses/${data.id}`}>
+                        <Link href={`/cojooboo/courses/${data.id}`}>
                             <Edit className="size-4 mr-2" /> 편집하기
                         </Link>
                     </DropdownMenuItem>

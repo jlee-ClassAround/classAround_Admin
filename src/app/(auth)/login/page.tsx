@@ -17,6 +17,7 @@ export default function LoginPage() {
         e.preventDefault();
 
         const res = await loginAction({ userId, password });
+        console.log(res);
         if (res?.success) router.push('/');
         else alert(res.error);
     };

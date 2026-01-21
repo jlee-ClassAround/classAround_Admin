@@ -12,7 +12,7 @@ export interface SessionProps {
 
 export async function getSession() {
     return getIronSession<SessionProps>(await cookies(), {
-        cookieName: 'Session',
+        cookieName: 'adminSession',
         password: process.env.COOKIE_PASSWORD!,
         cookieOptions: {
             secure: process.env.NODE_ENV === 'production',
