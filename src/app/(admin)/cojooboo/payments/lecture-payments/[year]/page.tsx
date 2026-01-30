@@ -6,9 +6,10 @@ import { getDailyStats } from '../../../_actions/payments/get-daily-stats';
 import { getAdminCourses } from '../../../_actions/courses/get-admin-courses';
 import { PaymentStats } from '../../history/_components/payment-stats';
 import { PaymentDataTable } from '../_components';
-import { columns } from './columns';
+
 import { getPaymentStats } from '../_actions/get-payments-stats';
 import { getCoursesWithCustomer } from './actions';
+import { columns } from './columns';
 
 interface PageProps {
     params: Promise<{

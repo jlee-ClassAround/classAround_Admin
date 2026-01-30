@@ -2,8 +2,9 @@ import { Card } from '@/components/ui/card';
 import { getLecturePaymentStatsByOrder } from './_actions/get-payments-stats';
 import { PaymentStats } from './_components/payment-stats';
 import { LecturePaymentDetailDataTable } from './_components/lecture-payment-data-table';
-import { getLecturePaymentsByOrder } from './actions';
+
 import { cojoobooDb } from '@/lib/cojoobooDb';
+import { getLecturePaymentsByOrder } from './actions';
 
 interface PageProps {
     params: Promise<{ id: string }>;
@@ -37,7 +38,7 @@ export default async function AdminLecturePaymentsPageDetail({ params, searchPar
             <PaymentStats stats={stats} />
 
             <Card className="p-6">
-                <LecturePaymentDetailDataTable data={payments.rows} />
+                <LecturePaymentDetailDataTable data={payments.rows} courseId={courseId} />
             </Card>
         </div>
     );

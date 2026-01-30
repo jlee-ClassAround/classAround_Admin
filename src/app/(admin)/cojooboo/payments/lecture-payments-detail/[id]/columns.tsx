@@ -8,11 +8,13 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { dateFormat, formatPrice } from '@/utils/formats';
 
-import type { LecturePaymentDetailRow } from './actions';
 import { DetailDialog } from './_components/detail-dialog';
 import { RefundButton } from './_components/refund-button';
 import { getPaymentMethodToKr } from '../../lecture-payments/utils/get-enum-to-kr';
 import { ReceiptText } from 'lucide-react';
+import { ManualRefundButton } from './_components/manual-refund-button';
+import { PaymentLogDialog } from './_components/payment-log-dialog';
+import { LecturePaymentDetailRow } from './actions';
 
 function paymentStatusLabel(status: string): { label: string; className: string } {
     switch (status) {
@@ -21,7 +23,7 @@ function paymentStatusLabel(status: string): { label: string; className: string 
         case 'CANCELED':
             return { label: '환불됨', className: 'text-red-500 bg-red-500/10' };
         case 'PARTIAL_CANCELED':
-            return { label: '부분환불', className: 'text-red-500 bg-red-500/10' };
+            return { label: '부분환불', className: 'text-orange-500 bg-orange-500/10' };
         case 'WAITING_FOR_DEPOSIT':
             return { label: '입금대기', className: 'text-yellow-500 bg-yellow-500/10' };
         case 'WAITING_FOR_DIRECT_DEPOSIT':
@@ -129,26 +131,64 @@ export const columns: ColumnDef<LecturePaymentDetailRow>[] = [
         meta: { label: '처리' },
         header: ({ column }) => <DataTableColumnHeader column={column} title="처리" />,
         cell: ({ row }) => {
-            const status = String(row.original.paymentStatus ?? '');
-            if (status === 'CANCELED') {
-                return <div className="text-xs text-muted-foreground flex justify-start">-</div>;
+            const data = row.original;
+            const status = String(data.paymentStatus ?? '');
+
+            if (status === 'CANCELED' || status === 'REFUNDED') {
+                return <div className="text-xs text-muted-foreground">-</div>;
             }
+
+            if (data.paymentMethod === 'TRANSFER') {
+                return <ManualRefundButton row={row} />;
+            }
+
             return <RefundButton row={row} />;
         },
     },
     {
-        id: 'receiptUrl',
+        id: 'detail', // ✅ 컬럼 ID를 더 범용적인 이름으로 변경 (선택사항)
         meta: { label: '상세' },
         header: ({ column }) => <DataTableColumnHeader column={column} title="상세" />,
         cell: ({ row }) => {
-            const payment = row.original;
-            if (payment.receiptUrl) {
+            const [isLogOpen, setIsLogOpen] = useState(false);
+            const data = row.original;
+
+            // 1. 토스 결제 등 영수증 URL이 있는 경우 (기존 로직)
+            if (data.receiptUrl) {
                 return (
-                    <a href={payment.receiptUrl} target="_blank" className="p-1 hover:text-primary">
+                    <a
+                        href={data.receiptUrl}
+                        target="_blank"
+                        className="p-1 hover:text-primary"
+                        title="영수증 보기"
+                    >
                         <ReceiptText className="w-4 h-4 text-muted-foreground" />
                     </a>
                 );
             }
+
+            // 2. 계좌이체(TRANSFER) 등 수동 결제건인 경우 상세 로그 모달 노출
+            if (data.paymentMethod === 'TRANSFER') {
+                return (
+                    <>
+                        <button
+                            onClick={() => setIsLogOpen(true)}
+                            className="p-1 hover:text-primary cursor-pointer"
+                            title="결제 이력 로그"
+                        >
+                            <ReceiptText className="w-4 h-4 text-muted-foreground" />
+                        </button>
+
+                        {/* ✅ 결제 이력을 보여주는 상세 로그 모달 */}
+                        <PaymentLogDialog
+                            open={isLogOpen}
+                            onOpenChange={setIsLogOpen}
+                            orderId={data.orderId}
+                        />
+                    </>
+                );
+            }
+
             return null;
         },
     },

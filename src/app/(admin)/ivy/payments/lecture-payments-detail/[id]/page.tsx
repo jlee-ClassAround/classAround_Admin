@@ -37,7 +37,7 @@ export default async function AdminLecturePaymentsPageDetail({ params, searchPar
             <PaymentStats stats={stats} />
 
             <Card className="p-6">
-                <LecturePaymentDetailDataTable data={payments.rows} />
+                <LecturePaymentDetailDataTable data={payments.rows} courseId={courseId} />
             </Card>
         </div>
     );

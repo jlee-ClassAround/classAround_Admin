@@ -29,7 +29,7 @@ export default function middleware(req: NextRequest) {
     const search = req.nextUrl.search;
 
     // 🔥 iron-session이 만든 쿠키 이름이 "Session" 이라고 했으니 그대로 사용
-    const sessionCookie = req.cookies.get('Session');
+    const sessionCookie = req.cookies.get('adminSession');
     const isLoggedIn = !!sessionCookie?.value;
 
     const isAuthRoute = matchRoute(pathname, authRoutes);

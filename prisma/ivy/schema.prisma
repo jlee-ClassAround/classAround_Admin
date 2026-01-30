@@ -258,6 +258,7 @@ model Enrollment {
   courseOptionId String?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
+  role           String?
   course         Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
   courseOption   CourseOption? @relation(fields: [courseOptionId], references: [id])
   user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -546,7 +547,7 @@ model BillingSnapshot {
 }
 
 model Order {
-  id              String      @id
+  id              String      @id @default(uuid())
   orderName       String
   orderNumber     String
   type            OrderType   @default(BULK_PAYMENT)
@@ -558,7 +559,7 @@ model Order {
   discountedPrice Int?
   usedCoupon      Json?
   createdAt       DateTime    @default(now()) @db.Timestamp(6)
-  updatedAt       DateTime    @db.Timestamp(6)
+  updatedAt       DateTime    @default(now()) @updatedAt @db.Timestamp(6)
   userId          String?
   user            User?       @relation(fields: [userId], references: [id])
   orderItems      OrderItem[]
@@ -566,7 +567,7 @@ model Order {
 }
 
 model OrderItem {
-  id              String          @id
+  id              String          @id @default(uuid())
   productCategory ProductCategory @default(COURSE)
   productId       String
   productTitle    String
@@ -576,7 +577,7 @@ model OrderItem {
   originalPrice   Int
   discountedPrice Int?
   createdAt       DateTime        @default(now()) @db.Timestamp(6)
-  updatedAt       DateTime        @db.Timestamp(6)
+  updatedAt       DateTime        @default(now()) @updatedAt @db.Timestamp(6)
   orderId         String
   courseId        String?
   ebookId         String?
@@ -586,7 +587,7 @@ model OrderItem {
 }
 
 model Payment {
-  id                  String           @id
+  id                  String           @id @default(uuid())
   tossPaymentKey      String?
   mId                 String?
   tossSecretKey       String?
@@ -602,7 +603,7 @@ model Payment {
   canceledAt          DateTime?        @db.Timestamp(6)
   receiptUrl          String?
   createdAt           DateTime         @default(now()) @db.Timestamp(6)
-  updatedAt           DateTime         @db.Timestamp(6)
+  updatedAt           DateTime         @default(now()) @updatedAt @db.Timestamp(6)
   orderId             String
   billingSnapshotId   String?
   billingSnapshot     BillingSnapshot? @relation(fields: [billingSnapshotId], references: [id])

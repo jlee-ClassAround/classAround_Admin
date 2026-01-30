@@ -27,12 +27,12 @@ export function AdminRoutes({ currentRole }: { currentRole?: string }) {
 
     return (
         <>
-            {visibleMenuGroups.map((group) => {
+            {visibleMenuGroups.map((group, idx) => {
                 const isGroupActive = pathname.includes(`/${group.prefix}`);
 
                 return (
                     <Collapsible
-                        key={group.prefix}
+                        key={`${group.prefix}-${idx}`}
                         defaultOpen={isGroupActive}
                         className="group/collapsible"
                     >

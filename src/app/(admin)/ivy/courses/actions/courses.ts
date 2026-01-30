@@ -230,3 +230,27 @@ export async function duplicateCourseAction(courseId: string, isIncludeChapters:
         return { success: false, error: 'Internal Server Error' };
     }
 }
+export async function getMainCoursesAction() {
+    try {
+        const courses = await ivyDb.course.findMany({
+            where: { parentId: null }, // 부모가 없는 것만
+            select: { id: true, title: true },
+            orderBy: { title: 'asc' },
+        });
+        return { success: true, data: courses };
+    } catch (error) {
+        return { success: false, error: '목록을 불러오지 못했습니다.' };
+    }
+}
+
+export async function updateParentIdBulkAction(courseIds: string[], parentId: string | null) {
+    try {
+        await ivyDb.course.updateMany({
+            where: { id: { in: courseIds } },
+            data: { parentId },
+        });
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: '수정 중 오류가 발생했습니다.' };
+    }
+}

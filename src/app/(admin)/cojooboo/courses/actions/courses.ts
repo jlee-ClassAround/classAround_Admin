@@ -155,10 +155,12 @@ export async function deleteCoursesBulkAction(courseIds: string[]) {
 export async function duplicateCourseAction(courseId: string, isIncludeChapters: boolean) {
     try {
         const isAdmin = await getIsAdmin();
+        console.log(isAdmin);
         if (!isAdmin) {
             return { success: false, error: 'Unauthorized' };
         }
 
+        console.log(0);
         // 기존 강의 조회
         const course = await cojoobooDb.course.findUnique({
             where: { id: courseId },
@@ -168,7 +170,7 @@ export async function duplicateCourseAction(courseId: string, isIncludeChapters:
                 },
             },
         });
-
+        console.log(1);
         if (!course) {
             return { success: false, error: 'Course not found' };
         }
@@ -187,7 +189,7 @@ export async function duplicateCourseAction(courseId: string, isIncludeChapters:
             },
             select: { id: true },
         });
-
+        console.log(2);
         // 챕터 + 레슨 복제
         if (isIncludeChapters) {
             for (const chapter of chapters) {
@@ -217,7 +219,7 @@ export async function duplicateCourseAction(courseId: string, isIncludeChapters:
                 }
             }
         }
-
+        console.log(3);
         // 🔄 캐시 갱신
         revalidateTag('courses');
         revalidateTag('best-courses');
@@ -227,5 +229,30 @@ export async function duplicateCourseAction(courseId: string, isIncludeChapters:
     } catch (error) {
         console.error('[COURSE_DUPLICATE_ERROR]', error);
         return { success: false, error: 'Internal Server Error' };
+    }
+}
+
+export async function getMainCoursesAction() {
+    try {
+        const courses = await cojoobooDb.course.findMany({
+            where: { parentId: null }, // 부모가 없는 것만
+            select: { id: true, title: true },
+            orderBy: { title: 'asc' },
+        });
+        return { success: true, data: courses };
+    } catch (error) {
+        return { success: false, error: '목록을 불러오지 못했습니다.' };
+    }
+}
+
+export async function updateParentIdBulkAction(courseIds: string[], parentId: string | null) {
+    try {
+        await cojoobooDb.course.updateMany({
+            where: { id: { in: courseIds } },
+            data: { parentId },
+        });
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: '수정 중 오류가 발생했습니다.' };
     }
 }

@@ -3,6 +3,7 @@
 import { ivyDb } from '@/lib/ivyDb';
 import { Prisma, OrderStatus, PaymentStatus, ProductCategory } from '@/generated/ivy';
 
+/** ✅ 요청하신 통계 데이터 타입 */
 export type LecturePaymentStats = {
     totalOrders: number;
     totalPaymentAmount: number;
@@ -13,202 +14,110 @@ export type LecturePaymentStats = {
     refundStatsCount: number;
 };
 
-type UsedCouponShape = {
-    couponAmount?: number;
-    amount?: number;
-    discountAmount?: number;
-};
-
-type Money = number;
-
-function safeNumber(v: unknown): number {
-    const n: number = typeof v === 'number' ? v : Number(v);
-    return Number.isFinite(n) ? n : 0;
-}
-
-function itemFinalPrice(item: { discountedPrice: number | null; originalPrice: number }): number {
-    return item.discountedPrice ?? item.originalPrice;
-}
-
-function allocateByRatio<T extends { key: string; price: number }>(
-    items: T[],
-    total: Money
-): Map<string, Money> {
-    const result: Map<string, Money> = new Map();
-    if (items.length === 0) return result;
-
-    const prices: number[] = items.map((i) => i.price || 0);
-    const totalPrice: number = prices.reduce((a, b) => a + b, 0);
-
-    if (totalPrice <= 0 || total === 0) {
-        for (const it of items) result.set(it.key, 0);
-        return result;
-    }
-
-    const allocs: number[] = prices.map((p) => Math.floor((total * p) / totalPrice));
-    const used: number = allocs.reduce((a, b) => a + b, 0);
-    let remain: number = total - used;
-
-    let idx: number = 0;
-    while (remain > 0) {
-        allocs[idx] += 1;
-        remain -= 1;
-        idx = (idx + 1) % allocs.length;
-    }
-
-    for (let i = 0; i < items.length; i++) {
-        const k: string = items[i].key;
-        result.set(k, (result.get(k) ?? 0) + allocs[i]);
-    }
-
-    return result;
-}
-
-/**
- * ✅ 일부 시스템에서는 "취소/부분취소" 시 amount가 '남은금액(=0)'으로 업데이트되기도 함.
- * 그 경우 총매출(원 결제금액)을 복원하기 위해,
- * cancelAmount가 있고 amount < cancelAmount 이면 gross = amount + cancelAmount 로 계산.
- */
-function resolveGrossPaidAmount(params: {
-    amount: number;
-    cancelAmount: number | null;
-    status: PaymentStatus;
-}): number {
-    const amount: number = params.amount ?? 0;
-    const cancel: number = params.cancelAmount ?? 0;
-
-    if (cancel <= 0) return amount;
-
-    if (
-        params.status === PaymentStatus.CANCELED ||
-        params.status === PaymentStatus.PARTIAL_CANCELED
-    ) {
-        // ✅ amount가 '환불 후 잔액'으로 들어온 경우만 복원
-        if (amount < cancel) return amount + cancel;
-    }
-
-    return amount;
-}
-
 export async function getLecturePaymentStatsByOrder({
     courseId,
 }: {
     courseId: string;
 }): Promise<LecturePaymentStats> {
-    const childCourses: Array<{ id: string }> = await ivyDb.course.findMany({
+    // 1. 타겟 강의 ID 리스트 준비 (메인 + 하위 강의 포함)
+    const childCourses = await ivyDb.course.findMany({
         where: { parentId: courseId },
         select: { id: true },
     });
+    const targetCourseIds = [courseId, ...childCourses.map((c) => c.id)];
+    const targetSet = new Set(targetCourseIds);
 
-    const targetCourseIds: string[] = [courseId, ...childCourses.map((c) => c.id)];
-
-    const whereOrderCourse: Prisma.OrderWhereInput = {
-        orderItems: {
-            some: {
-                productCategory: ProductCategory.COURSE, // ✅ enum으로 통일
-                OR: [{ courseId: { in: targetCourseIds } }, { productId: { in: targetCourseIds } }],
-            },
-        },
-    };
-
-    const totalOrders: number = await ivyDb.order.count({ where: whereOrderCourse });
-
-    const payments = await ivyDb.payment.findMany({
+    // 2. 관련 주문을 '주문(Order)' 단위로 조회 (결제 중복 카운트 방지)
+    // 💡 Payment 기준이 아닌 Order 기준으로 조회해야 43건이 아닌 40건으로 정렬됩니다.
+    const orders = await ivyDb.order.findMany({
         where: {
-            order: whereOrderCourse,
-            paymentStatus: {
-                in: [PaymentStatus.DONE, PaymentStatus.CANCELED, PaymentStatus.PARTIAL_CANCELED],
+            orderItems: {
+                some: {
+                    productCategory: ProductCategory.COURSE,
+                    OR: [
+                        { courseId: { in: targetCourseIds } },
+                        { productId: { in: targetCourseIds } },
+                    ],
+                },
             },
-        },
-        select: {
-            amount: true,
-            cancelAmount: true,
-            paymentStatus: true,
-            order: {
-                select: {
-                    orderItems: {
-                        where: { productCategory: ProductCategory.COURSE }, // ✅ enum으로 통일
-                        select: {
-                            courseId: true,
-                            productId: true,
-                            originalPrice: true,
-                            discountedPrice: true,
-                        },
+            payments: {
+                some: {
+                    paymentStatus: {
+                        in: [
+                            PaymentStatus.DONE,
+                            PaymentStatus.CANCELED,
+                            PaymentStatus.PARTIAL_CANCELED,
+                        ],
                     },
                 },
             },
         },
-    });
-
-    let allocatedPaidSum: Money = 0; // ✅ 총매출(결제된 금액)
-    let allocatedRefundSum: Money = 0; // ✅ 환불 합계
-
-    for (const p of payments) {
-        const items = p.order.orderItems
-            .map((it) => {
-                const resolvedCourseId: string | null = (it.courseId ?? it.productId) as
-                    | string
-                    | null;
-                if (!resolvedCourseId) return null;
-                return {
-                    key: resolvedCourseId,
-                    price: itemFinalPrice({
-                        originalPrice: it.originalPrice,
-                        discountedPrice: it.discountedPrice,
-                    }),
-                };
-            })
-            .filter((v): v is { key: string; price: number } => Boolean(v?.key));
-
-        // ✅ 핵심: 총매출(원 결제금액) 복원
-        const grossPaid: number = resolveGrossPaidAmount({
-            amount: p.amount,
-            cancelAmount: p.cancelAmount,
-            status: p.paymentStatus,
-        });
-
-        const paidAlloc = allocateByRatio(items, grossPaid);
-        const refundAlloc = allocateByRatio(items, p.cancelAmount ?? 0);
-
-        for (const cid of targetCourseIds) {
-            allocatedPaidSum += paidAlloc.get(cid) ?? 0;
-            allocatedRefundSum += refundAlloc.get(cid) ?? 0;
-        }
-    }
-
-    const netAmount: Money = allocatedPaidSum - allocatedRefundSum;
-
-    const refundStatsCount: number = await ivyDb.order.count({
-        where: {
-            ...whereOrderCourse,
-            status: { in: [OrderStatus.REFUNDED, OrderStatus.PARTIAL_REFUNDED] },
+        include: {
+            orderItems: true,
+            payments: true,
         },
     });
 
-    const couponOrders = await ivyDb.order.findMany({
-        where: { ...whereOrderCourse, usedCoupon: { not: Prisma.AnyNull } },
-        select: { usedCoupon: true },
-    });
+    let totalGrossRevenue = 0; // 🎯 엑셀 '전체합산' 목표: 292,024,539
+    let totalRefundAmount = 0; // 🎯 엑셀 '환불금액합산' 목표: 79,734,539
+    const refundedOrderNumbers = new Set<string>(); // 🎯 엑셀 '환불건수' 목표: 40
 
-    const couponUsageCount: number = couponOrders.length;
+    for (const order of orders) {
+        // A. 주문 내 모든 아이템 가격 총합 (비율 계산용 분모)
+        const orderTotalItemPrice = order.orderItems.reduce(
+            (sum, it) => sum + (it.discountedPrice ?? it.originalPrice ?? 0),
+            0
+        );
 
-    const totalDiscountAmount: Money = couponOrders.reduce((sum: number, o) => {
-        const uc: UsedCouponShape | null = o.usedCoupon as unknown as UsedCouponShape | null;
-        if (!uc) return sum;
+        // B. 주문 내 '타겟 강의'들의 가격 합계 (이 강의의 실제 매출액)
+        const targetItemsPriceInOrder = order.orderItems
+            .filter((it) => {
+                const id = (it.courseId ?? it.productId) as string;
+                return targetSet.has(id);
+            })
+            .reduce((sum, it) => sum + (it.discountedPrice ?? it.originalPrice ?? 0), 0);
 
-        const couponAmount: number =
-            safeNumber(uc.couponAmount) || safeNumber(uc.discountAmount) || safeNumber(uc.amount);
+        // ✅ [총매출 누적] 엑셀의 개별 행 가격을 더하는 것과 동일 (거품 제거)
+        totalGrossRevenue += targetItemsPriceInOrder;
 
-        return sum + couponAmount;
+        // C. [환불액 및 환불건수 계산]
+        if (orderTotalItemPrice > 0) {
+            // 해당 주문의 전체 환불액 합산 (결제 기록이 여러 개일 경우 모두 합산)
+            const orderTotalCancelAmount = order.payments.reduce(
+                (sum, p) => sum + (p.cancelAmount ?? 0),
+                0
+            );
+
+            if (orderTotalCancelAmount > 0) {
+                // ✅ [환불액 누적] 타겟 강의 비율만큼 배분 후 반올림 (4원 오차 해결)
+                const ratio = targetItemsPriceInOrder / orderTotalItemPrice;
+                const allocatedRefund = Math.round(orderTotalCancelAmount * ratio);
+
+                totalRefundAmount += allocatedRefund;
+
+                // ✅ [환불건수 누적] 타겟 강의에 환불액이 배정된 경우만 카운트
+                if (allocatedRefund > 0) {
+                    refundedOrderNumbers.add(order.orderNumber || order.id);
+                }
+            }
+        }
+    }
+
+    // 3. 쿠폰 할인 통계
+    const couponOrders = orders.filter((o) => o.usedCoupon !== null);
+    const totalDiscountAmount = couponOrders.reduce((sum, o) => {
+        const uc = o.usedCoupon as any;
+        const discount = uc?.couponAmount || uc?.discountAmount || uc?.amount || 0;
+        return sum + discount;
     }, 0);
 
     return {
-        totalOrders,
-        totalPaymentAmount: allocatedPaidSum, // ✅ 총매출은 gross
-        totalRefundAmount: allocatedRefundSum,
-        finalPaymentAmount: netAmount,
-        couponUsageCount,
+        totalOrders: orders.length, // 전체 고유 주문 수 (엑셀 행 수와 일치)
+        totalPaymentAmount: totalGrossRevenue, // 총매출 (엑셀 SUM 합계와 일치)
+        totalRefundAmount: totalRefundAmount, // 환불액 합계 (반올림 보정 완료)
+        finalPaymentAmount: totalGrossRevenue - totalRefundAmount, // 순이익 (엑셀 순이익 합계와 일치)
+        couponUsageCount: couponOrders.length,
         totalDiscountAmount,
-        refundStatsCount,
+        refundStatsCount: refundedOrderNumbers.size, // 고유 환불 주문 수 (40건)
     };
 }

@@ -8,10 +8,12 @@ interface Props {
 }
 
 export type EnrolledUser = User & {
+    enrollmentId: string;
     progress: number;
     courseOption: CourseOption | null;
     endDate: Date | null;
     isActive: boolean;
+    role: string | null;
 };
 
 export async function getEnrolledUsers({ courseId }: Props) {
@@ -71,10 +73,12 @@ export async function getEnrolledUsers({ courseId }: Props) {
             (enrollment) =>
                 ({
                     ...enrollment.user,
+                    enrollmentId: enrollment.id,
                     courseOption: enrollment.courseOption,
                     progress: progressMap.get(enrollment.userId) || 0,
                     endDate: enrollment.endDate,
                     isActive: enrollment.isActive,
+                    role: enrollment.role,
                 } as EnrolledUser)
         );
 

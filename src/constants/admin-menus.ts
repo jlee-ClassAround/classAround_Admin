@@ -22,6 +22,7 @@ import {
     Send,
     Angry,
     MessageCircleMore,
+    Hammer,
 } from 'lucide-react';
 
 /* ---------- 타입 ---------- */
@@ -178,6 +179,17 @@ export const baseAdminMenus: AdminMenu[] = [
             { label: '개인정보처리방침', href: '/settings/terms/privacy-policy' },
             { label: '서비스 이용약관', href: '/settings/terms/terms-of-use' },
             { label: '환불 정책', href: '/settings/terms/refund-policy' },
+        ],
+    },
+    {
+        label: '커스텀',
+        icon: Hammer,
+        href: '/custom',
+        subMenus: [
+            {
+                label: '강의별 결제추가',
+                href: '/custom/sync-payments',
+            },
         ],
     },
 ];
